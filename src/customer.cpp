@@ -3,6 +3,7 @@
 
 constexpr int MIN_LITERS = 5;
 constexpr int MAX_LITERS = 70;
+
 /*
 * Receive fuel should not happen after returning the pump hose. Need to fix this.
 */
@@ -20,26 +21,22 @@ Customer::Customer() : pumpId(-1)
         pumpStatuses.emplace_back(static_cast<PumpStatus*>(pumpFlagDataPool[i]->LinkDataPool()));
     }
 
-    resizeToFit(data.name, getRandomName());
-
+    data.name = getRandomName();
     data.requestedVolume = getRandomFloat(MIN_LITERS, MAX_LITERS);
-
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " was created to request " << data.requestedVolume << " liters of fuel." << endl;
-    windowMutex->Signal();
     data.txnStatus = TxnStatus::Pending;
-
+    status = CustomerStatus::Null;
 }
 
 int
 Customer::getAvailPumpId()
 {
-    int time_out = 0;
+    //int time_out = 0;
     while (true) {
         for (int i = 0; i < NUM_PUMPS; i++) {
+            // TODO: Should mutex be placed outside the for loop?
             pumpMutex[i]->Wait();
             bool busy_flag = pumpStatuses[i]->busy;
-#if DEBUG_MODE
+#if 0
             if (busy_flag) {
                 windowMutex->Wait();
                 cout << "Pump " << i << " is busy." << endl;
@@ -78,38 +75,22 @@ Customer::getAvailPumpId()
 void
 Customer::arriveAtPump()
 {
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " is arriving at a pump" << endl;
-    fflush(stdout);
-    windowMutex->Signal();
-
+    
     pumpId = getAvailPumpId();
-
-    windowMutex->Wait();
-    cout << "Found an idling pump with ID " << pumpId << endl;
-    fflush(stdout);
-    windowMutex->Signal();
-    assert(data.txnStatus == TxnStatus::Pending);
+    status = CustomerStatus::ArriveAtPump;
 }
 
 void
 Customer::swipeCreditCard()
 {
-    resizeToFit(data.creditCardNumber, getRandomCreditCardNumber());
-
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " credit card number: " << data.creditCardNumber << endl;
-    fflush(stdout);
-    windowMutex->Signal();
+    data.creditCardNumber = getRandomCreditCardNumber();
+    status = CustomerStatus::SwipeCreditCard;
 }
 
 void
-Customer::removeGasHoseFromPump()
+Customer::removeGasHose()
 {
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " removed the gas hose from the pump." << endl;
-    fflush(stdout);
-    windowMutex->Signal();
+    status = CustomerStatus::RemoveGasHose;
 }
 
 void
@@ -119,66 +100,43 @@ Customer::selectFuelGrade()
     //data.grade = FuelGrade::Oct87;
     //data.grade = FuelGrade::Oct89;
     assert(fuelGradeToInt(data.grade) >= 0 && fuelGradeToInt(data.grade) <= 3);
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " selected fuel " << fuelGradeToString(data.grade) << endl;
-    fflush(stdout);
-    windowMutex->Signal();
 
     data.unitCost = price.getUnitCost(data.grade);
 
-#if 0
-    pumpMutex[pumpId]->Wait();
-    bool busy_flag = pumpStatuses[pumpId]->busy;
-    pumpMutex[pumpId]->Signal();
-    assert(busy_flag == true);
-    cout << "Customer is about to write data to the pipe." << endl;
-    cout << "DEBUG: credit card number: " << data.creditCardNumber << endl;
-#endif
-
     writePipe(&data);
-#if DEBUG_MODE
-    windowMutex->Wait();
-    cout << "Customer has written data to the pipe." << endl;
-    fflush(stdout);
-    windowMutex->Signal();
-#endif
+
 
 #if DEBUG_MODE
     do {
-        SLEEP(2000);
         if (pipe[pumpId]->TestForData() != 0) {
-            windowMutex->Wait();
-            cout << "Debug info: data written to the pipe is not consumed." << endl;
-            fflush(stdout);
-            windowMutex->Signal();
+            SLEEP(2000);
         }
     } while (pipe[pumpId]->TestForData() != 0);
-    
 #endif
+    status = CustomerStatus::SelectFuelGrade;
 }
 
 void
 Customer::getFuel()
 {
-
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " is ready to get their fuel." << endl;
-    fflush(stdout);
-    windowMutex->Signal();
-
-    bool is_transaction_completed = false;
+    status = CustomerStatus::WaitForAuth;
+    
+    TxnStatus txn_status = TxnStatus::Pending;
     do {
         pumpMutex[pumpId]->Wait();
-        is_transaction_completed = pumpStatuses[pumpId]->isTransactionCompleted;
+        txn_status = pumpStatuses[pumpId]->txnStatus;
         pumpMutex[pumpId]->Signal();
-        cout << "Receiving fuel..." << endl;
-        SLEEP(1300);
-    } while (!is_transaction_completed);
+    } while (txn_status == TxnStatus::Pending);
+    
+    status = CustomerStatus::GetFuel;
 
-    windowMutex->Wait();
-    cout << "Requested amount of fuel has been received." << endl;
-    fflush(stdout);
-    windowMutex->Signal();
+    bool txn_completed = false;
+    do {
+        pumpMutex[pumpId]->Wait();
+        txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
+        pumpMutex[pumpId]->Signal();
+        SLEEP(3000);
+    } while (!txn_completed);
 }
 
 void
@@ -195,29 +153,19 @@ Customer::writePipe(CustomerRecord* customer)
     assert(pipe[pumpId]->TestForData() == 0);
     pipe[pumpId]->Write(customer);
 
-    windowMutex->Wait();
-    cout << "data has been written to the pipe" << endl;
-    fflush(stdout);
-    windowMutex->Signal();
-
     pipeMutex[pumpId]->Signal();
 }
 
 void
-Customer::returnHoseToPump()
+Customer::returnGasHose()
 {
-    windowMutex->Wait();
-    cout << "Customer " << data.name << " returned hose to the pump." << endl;
-    windowMutex->Signal();
+    status = CustomerStatus::ReturnGasHose;
 }
 
 void
 Customer::driveAway()
 {
-    windowMutex->Wait();
-    cout << "Customer drove away." << endl;
-    fflush(stdout);
-    windowMutex->Signal();
+    status = CustomerStatus::DriveAway;
 }
 
 string
@@ -276,17 +224,7 @@ Customer::getRandomCreditCardNumber()
     uniform_int_distribution<int> dist(0, 9);
 
     string creditCardNumber;
-    //for (int i = 0; i < 15; ++i) {
-#if 0
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            creditCardNumber += to_string(dist(rng));
-        }
-        if (i != 3) {
-            creditCardNumber += " ";
-        }
-    }
-#endif
+
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 4; ++j) {
             creditCardNumber += to_string(dist(rng));
@@ -325,12 +263,44 @@ Customer::main(void)
 {
     arriveAtPump();
     swipeCreditCard();
-    removeGasHoseFromPump();
+    removeGasHose();
     selectFuelGrade();
     getFuel();
-    returnHoseToPump();
+    returnGasHose();
     driveAway();
-    //cout << "Press enter to terminal Customer " << data.name << " thread " << endl;
-    //waitForKeyPress();
     return 0;
+}
+
+string
+Customer::customerStatusToString(const CustomerStatus& status) const
+{
+    // `static const` means it is shared among all instances of Customer and
+    // won't change once initialized. 
+    static const unordered_map<CustomerStatus, string> status_to_string = {
+        {CustomerStatus::ArriveAtPump, "Arrive at pump"},
+        {CustomerStatus::SwipeCreditCard, "Swipe credit card"},
+        {CustomerStatus::RemoveGasHose, "Remove gas hose"},
+        {CustomerStatus::SelectFuelGrade, "Select fuel grade"},
+        {CustomerStatus::WaitForAuth, "Wait for auth"},
+        {CustomerStatus::GetFuel, "Getting fuel"},
+        {CustomerStatus::ReturnGasHose, "Return gas hose"},
+        {CustomerStatus::DriveAway, "Drive away"},
+        {CustomerStatus::Null, "Null"}
+    };
+
+    // The.at() function is used to retrieve the value associated with the given key.
+    // It will throw an exception if the key doesn't exist, which can help us catch potential errors.
+    return status_to_string.at(status);
+}
+
+CustomerRecord &
+Customer::getData()
+{
+    return data;
+}
+
+string
+Customer::getStatus()
+{
+    return customerStatusToString(status);
 }

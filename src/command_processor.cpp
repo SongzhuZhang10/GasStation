@@ -64,7 +64,7 @@ void CommandProcessor::run()
 
         {
             std::lock_guard<std::mutex> lock(outputMutex);
-            std::cout << "Enter command and number: ";
+            std::cout << "[Command]: ";
         }
 
         std::getline(std::cin, input);

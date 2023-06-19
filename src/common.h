@@ -28,6 +28,7 @@
 #include <cassert>
 #include <random>
 #include <optional>
+#include <unordered_map>
 
 constexpr int NUM_TANKS = 4;
 constexpr int NUM_PUMPS = 4;
@@ -100,10 +101,8 @@ struct CustomerRecord
 	TxnStatus txnStatus;
 	// Default member initializer
 	CustomerRecord() :
-		//name("Unknown"),
 		// default value of creditCardNumber cannot exceeds 4-digits in string format.
 		// Or, memcpy exception is thrown when trying to read/write this data.
-		//creditCardNumber("000000000000000"),
 		grade(FuelGrade::Invalid),
 		requestedVolume(0.0f),
 		receivedVolume(0.0f),
@@ -164,12 +163,16 @@ struct CustomerRecord
 
 struct PumpStatus
 {
+	// Because transaction being completed does not mean the pump is released by
+	// the current customer and is ready to be used by the next customer and vice versa, we need
+	// two bool flags.
 	bool isTransactionCompleted;
 	bool busy;
-
+	TxnStatus txnStatus;
 	PumpStatus() :
 		busy(false),
-		isTransactionCompleted(true) // indicating the previous transaction was completed
+		isTransactionCompleted(true), // indicating the previous transaction was completed
+		txnStatus(TxnStatus::Pending)
 		{} 
 		
 };

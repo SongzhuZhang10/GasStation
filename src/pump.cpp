@@ -93,6 +93,7 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	// Must initialize the values pointed by the pointer in the constructor.
 	pumpStatus->busy = false;
 	pumpStatus->isTransactionCompleted = true;
+	pumpStatus->txnStatus = customer.txnStatus;
 	assert(!pumpStatus->busy && pumpStatus->isTransactionCompleted);
 	pumpMutex->Signal();
 
@@ -192,6 +193,7 @@ Pump::getTank(int id)
 void
 Pump::getFuel()
 {
+	assert(pumpStatus->isTransactionCompleted == false);
 	int tank_id = fuelGradeToInt(customer.grade);
 	// It's best to use a local temp variable here rather than a private variable of the class.
 	FuelTank& chosen_tank = getTank(tank_id);
@@ -236,13 +238,11 @@ void
 Pump::resetPump()
 {
 	cout << "Entered resetPump" << endl;
-	// TODO: make a struct type variable "custPumpPkt" that contains both pumpStatus and success so that when no enough fuel, the customer can know it.
-	pumpMutex->Wait();
-	pumpStatus->busy = false; // notify the customer the transaction is done.
-	pumpMutex->Signal();
-	
 	dpMutex->Wait();
 	customer.resetToDefault();
+
+	
+
 	do {
 		cout << "Initializing data pointer!" << endl; // should be printed only once.	
 		//data->txnStatus = customer.txnStatus;
@@ -262,6 +262,10 @@ Pump::resetPump()
 	} while ( *data != customer );
 	dpMutex->Signal();
 
+	pumpMutex->Wait();
+	pumpStatus->busy = false; // notify the customer the transaction is done.
+	pumpStatus->txnStatus = customer.txnStatus;
+	pumpMutex->Signal();
 	cout << "Exited resetPump" << endl;
 }
 void
@@ -295,7 +299,6 @@ Pump::readPipe()
 
 
 	pumpMutex->Wait();
-	//cout << "readPipe set isTransactionCompleted to false" << endl;
 	pumpStatus->isTransactionCompleted = false;
 	pumpMutex->Signal();
 
@@ -322,6 +325,10 @@ Pump::waitForAuth()
 		cout << "Customer Auth (before reading dp): " << txnStatusToString(customer.txnStatus) << endl;
 
 		customer.txnStatus = data->txnStatus;
+		// TODO: Is pumpMutex really necessary?
+		pumpMutex->Wait();
+		pumpStatus->txnStatus = customer.txnStatus;
+		pumpMutex->Signal();
 
 		cout << "Customer Name (after reading dp): " << customer.name << endl;
 		cout << "Customer Auth (after reading dp): " << txnStatusToString(customer.txnStatus) << endl;
@@ -331,6 +338,9 @@ Pump::waitForAuth()
 		comCs->Signal();
 		cout << "data consumed" << endl;
 	} while (customer.txnStatus == TxnStatus::Pending);
+
+	
+
 	cout << "Exited waitForAuth" << endl;
 }
 

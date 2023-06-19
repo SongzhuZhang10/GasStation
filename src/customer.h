@@ -8,6 +8,21 @@
 
 class Customer : public ActiveClass {
 private:
+	enum class CustomerStatus
+	{
+		ArriveAtPump,
+		SwipeCreditCard,
+		RemoveGasHose,
+		SelectFuelGrade,
+		WaitForAuth,
+		GetFuel,
+		ReturnGasHose,
+		DriveAway,
+		Null
+	};
+
+	CustomerStatus status;
+
 	int pumpId;
 
 	CustomerRecord data;
@@ -36,19 +51,21 @@ private:
 
 	void arriveAtPump();
 	void swipeCreditCard();
-	void removeGasHoseFromPump();
+	void removeGasHose();
 	void selectFuelGrade();
 	void getFuel();
-	void returnHoseToPump();
+	void returnGasHose();
 	void driveAway();
-	//void unlockPump();
-
-	// To trigger the this function, the declaration must be exactly in this form, including the `void`.
+	string customerStatusToString(const CustomerStatus& status) const;
+	// To trigger the this function, the declaration must be exactly
+	// in this form, including the `void` keyword.
 	int main(void); 
 
 public:
 	Customer();
-	
+	CustomerRecord& getData();
+	string getStatus();
+
 };
 
 
