@@ -10,9 +10,7 @@ private:
 	vector<unique_ptr<CMutex>> mutex;
 	vector<unique_ptr<CDataPool>> dp;
 	vector<unique_ptr<CustomerRecord>> dpData;
-
-	vector<unique_ptr<CSemaphore>> comPs;
-	vector<unique_ptr<CSemaphore>> comCs;
+	vector<unique_ptr<CEvent>> txnApproved;
 
 	unique_ptr<CTypedPipe<Cmd>> pipe;
 

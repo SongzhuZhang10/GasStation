@@ -10,6 +10,7 @@ class Customer : public ActiveClass {
 private:
 	enum class CustomerStatus
 	{
+		WaitForPump,
 		ArriveAtPump,
 		SwipeCreditCard,
 		RemoveGasHose,
@@ -25,21 +26,24 @@ private:
 
 	int pumpId;
 
+	unique_ptr<CMutex> pumpEnquiryMutex;
+
 	CustomerRecord data;
 
 	FuelPrice price;
 
+	vector<unique_ptr<CMutex>> pumpStatusMutex;
+
+	vector<unique_ptr<CEvent>> txnApproved;
 	vector<unique_ptr<CDataPool>> pumpFlagDataPool;
 	vector<unique_ptr<PumpStatus>> pumpStatuses;
 
 	vector<unique_ptr<CTypedPipe<CustomerRecord>>> pipe;
 	vector<unique_ptr<CMutex>> pipeMutex;
 
-	// protect the data pool containing the `pumpStatus` variable of the pump
-	vector<unique_ptr<CMutex>> pumpMutex;
-
 	// to protect DOS window from being shared by multiple threads at the same time
 	unique_ptr<CMutex> windowMutex;
+	
 
 	string getRandomName();
 	string getRandomCreditCardNumber();

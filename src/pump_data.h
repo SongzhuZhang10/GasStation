@@ -18,14 +18,6 @@ private:
 	unique_ptr<CMutex> mutex;
 	unique_ptr<CMutex> windowMutex;
 
-	// pumps are the producer
-	unique_ptr<CSemaphore> pumpPs;
-	unique_ptr<CSemaphore> pumpCs;
-
-	// computer is the producer
-	unique_ptr<CSemaphore> comPs;
-	unique_ptr<CSemaphore> comCs;
-
 	unique_ptr<CDataPool> dp;
 	unique_ptr<CustomerRecord> dpData;	
 

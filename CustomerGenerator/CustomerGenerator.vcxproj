@@ -22,6 +22,7 @@
     <ClInclude Include="..\src\common.h" />
     <ClInclude Include="..\src\customer.h" />
     <ClInclude Include="..\src\fuel_price.h" />
+    <ClInclude Include="..\src\pump_data.h" />
     <ClInclude Include="..\src\rt.h" />
   </ItemGroup>
   <ItemGroup>
@@ -29,6 +30,7 @@
     <ClCompile Include="..\src\customer.cpp" />
     <ClCompile Include="..\src\customer_main.cpp" />
     <ClCompile Include="..\src\fuel_price.cpp" />
+    <ClCompile Include="..\src\pump_data.cpp" />
     <ClCompile Include="..\src\rt.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

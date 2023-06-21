@@ -12,13 +12,12 @@
  * function definitions inside the implementation file.
  */
 void setupComputer();
-void recordTxn(const unique_ptr<PumpData>& pump_data_ptr);
-
 void printTxn(const CustomerRecord& record, int position, int txn_id);
 
-UINT __stdcall readPump(void* args);
+
 UINT __stdcall readTank(void* args);
 UINT __stdcall printTxnHistory(void* args);
+UINT __stdcall recordTxn(void* args);
 
 class TxnListPrinter
 {
@@ -34,7 +33,7 @@ private:
 	 * but won't manage its memory.
 	 */
 	list<CustomerRecord>* lst;
-	size_t last_size = 0;
+	
 	unique_ptr<CMutex> mutex;
 
 public:

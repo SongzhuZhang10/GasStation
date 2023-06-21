@@ -15,7 +15,8 @@ Customer::Customer() : pumpId(-1)
         pipe.emplace_back(make_unique<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
         pipeMutex.emplace_back(make_unique<CMutex>(getName("PipeMutex", i, "")));
         pumpFlagDataPool.emplace_back(make_unique<CDataPool>(getName("PumpBusyFlagDataPool", i, ""), sizeof(PumpStatus)));
-        pumpMutex.emplace_back(make_unique<CMutex>(getName("PumpMutex", i, "")));
+        pumpStatusMutex.emplace_back(make_unique<CMutex>(getName("PumpStatusMutex", i, "")));
+        txnApproved.emplace_back(make_unique<CEvent>(getName("TxnApprovedByPump", i, "")));
     }
     for (int i = 0; i < NUM_PUMPS; i++) {
         pumpStatuses.emplace_back(static_cast<PumpStatus*>(pumpFlagDataPool[i]->LinkDataPool()));
@@ -25,49 +26,29 @@ Customer::Customer() : pumpId(-1)
     data.requestedVolume = getRandomFloat(MIN_LITERS, MAX_LITERS);
     data.txnStatus = TxnStatus::Pending;
     status = CustomerStatus::Null;
+    pumpEnquiryMutex = make_unique<CMutex>("PumpEnquiryMutex");
 }
 
 int
 Customer::getAvailPumpId()
 {
-    //int time_out = 0;
+    status = CustomerStatus::WaitForPump;
+
     while (true) {
+        pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
-            // TODO: Should mutex be placed outside the for loop?
-            pumpMutex[i]->Wait();
-            bool busy_flag = pumpStatuses[i]->busy;
-#if 0
-            if (busy_flag) {
-                windowMutex->Wait();
-                cout << "Pump " << i << " is busy." << endl;
-                fflush(stdout);
-                windowMutex->Signal();
-            }
-            else {
-                windowMutex->Wait();
-                cout << "Pump " << i << " is free." << endl;
-                fflush(stdout);
-                windowMutex->Signal();
-            }
-#endif
-            if ( !busy_flag ) {
+            pumpStatusMutex[i]->Wait();
+            if (!pumpStatuses[i]->busy) {
                 // Own the pump so that it cannot be shared by others
                 pumpStatuses[i]->busy = true;
-                pumpMutex[i]->Signal();
+                pumpStatusMutex[i]->Signal();
                 data.pumpId = i;
+                pumpEnquiryMutex->Signal();
                 return i;
             }
-            pumpMutex[i]->Signal();
+            pumpStatusMutex[i]->Signal();
         }
-#if 0
-        if (++time_out == 10) {
-            windowMutex->Wait();
-            cout << "Warning: Tried to get an available pump too many times." << endl;
-            fflush(stdout);
-            windowMutex->Signal();
-            exit(-1);
-        }
-#endif
+        pumpEnquiryMutex->Signal();
         SLEEP(1500);
     }
 }
@@ -99,21 +80,13 @@ Customer::selectFuelGrade()
     data.grade = getRandomFuelGrade();
     //data.grade = FuelGrade::Oct87;
     //data.grade = FuelGrade::Oct89;
+    status = CustomerStatus::SelectFuelGrade;
+    
     assert(fuelGradeToInt(data.grade) >= 0 && fuelGradeToInt(data.grade) <= 3);
 
     data.unitCost = price.getUnitCost(data.grade);
 
     writePipe(&data);
-
-
-#if DEBUG_MODE
-    do {
-        if (pipe[pumpId]->TestForData() != 0) {
-            SLEEP(2000);
-        }
-    } while (pipe[pumpId]->TestForData() != 0);
-#endif
-    status = CustomerStatus::SelectFuelGrade;
 }
 
 void
@@ -121,20 +94,17 @@ Customer::getFuel()
 {
     status = CustomerStatus::WaitForAuth;
     
-    TxnStatus txn_status = TxnStatus::Pending;
-    do {
-        pumpMutex[pumpId]->Wait();
-        txn_status = pumpStatuses[pumpId]->txnStatus;
-        pumpMutex[pumpId]->Signal();
-    } while (txn_status == TxnStatus::Pending);
+    txnApproved[pumpId]->Wait();
     
     status = CustomerStatus::GetFuel;
 
     bool txn_completed = false;
+
+    // TODO: Consider using CEvent here.
     do {
-        pumpMutex[pumpId]->Wait();
+        pumpStatusMutex[pumpId]->Wait();
         txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
-        pumpMutex[pumpId]->Signal();
+        pumpStatusMutex[pumpId]->Signal();
         SLEEP(3000);
     } while (!txn_completed);
 }
@@ -149,8 +119,17 @@ Customer::writePipe(CustomerRecord* customer)
      * then it may not be necessary to mutex here. Verify the mutex is truly necessary later on.
      */
     pipeMutex[pumpId]->Wait();
-
-    assert(pipe[pumpId]->TestForData() == 0);
+#if 0
+    if (pipe[pumpId]->TestForData() != 0)
+    {
+        windowMutex->Wait();
+        cout << "Name: " << customer->name << "          " << endl;
+        cout << "pumpId = " << pumpId << endl;
+        cout << "Numer of items in pipe = " << pipe[pumpId]->TestForData() << endl;
+        windowMutex->Signal();
+    }
+#endif
+    //assert(pipe[pumpId]->TestForData() == 0);
     pipe[pumpId]->Write(customer);
 
     pipeMutex[pumpId]->Signal();
@@ -176,7 +155,8 @@ Customer::getRandomName()
         "Alice", "Bob", "Charlie", "David", "Eve", "Frank",
         "Grace", "John", "Ivan", "Jane", "Kevin", "Linda",
         "Songzhu", "Tippy", "Mike", "William", "Emma", "Emily",
-        "Sophia", "Mia", "Ava", "Andrew", "Songzhu", "Ruby", "John"
+        "Sophia", "Mia", "Ava", "Andrew", "Songzhu", "Ruby", "John",
+        "Olivia", "Noah", "James", "Isabella", "Carolina"
     };
 
     // Generate a random index
@@ -209,12 +189,8 @@ Customer::getRandomName()
  * the string variable representing credit card number
  * is too long (more than exactly 15 digits). Four digits can ensure that bank card string
  * can be passed to other threads through CPipe properply and
- * can be assigned to the dereferenced data pool pointer without 
- * causing the memcpy exception.
- * However, the CDataPool cannot handle string variables
- * in a deterministic way.
- * 
- * 
+ * can be assigned to the dereferenced data pool pointer without causing the memcpy exception.
+ * However, the CDataPool cannot handle string variables in a deterministic way.
  */
 string
 Customer::getRandomCreditCardNumber()
@@ -277,6 +253,7 @@ Customer::customerStatusToString(const CustomerStatus& status) const
     // `static const` means it is shared among all instances of Customer and
     // won't change once initialized. 
     static const unordered_map<CustomerStatus, string> status_to_string = {
+        {CustomerStatus::WaitForPump, "Wait for pump"},
         {CustomerStatus::ArriveAtPump, "Arrive at pump"},
         {CustomerStatus::SwipeCreditCard, "Swipe credit card"},
         {CustomerStatus::RemoveGasHose, "Remove gas hose"},

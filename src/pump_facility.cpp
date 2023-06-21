@@ -47,10 +47,9 @@ setupPumpFacility()
 {
 	for (int i = 0; i < NUM_PUMPS; i++) {
 		pumps.emplace_back(make_unique<Pump>(i, tanks));
-	}
-	for (int i = 0; i < NUM_PUMPS; i++) {
 		pumps[i]->Resume();
 	}
+
 	windowMutex->Wait();
 	cout << "All pumps have been activated." << endl;
 	fflush(stdout);

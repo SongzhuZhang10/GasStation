@@ -11,19 +11,16 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	// pipe size is set to 1 so that one customer is serviced at a time.
 	pipe = make_unique<CTypedPipe<CustomerRecord>>(getName("Pipe", _id, ""), 1);
 	pipeMutex = make_unique<CMutex>(getName("PipeMutex", _id, ""));
-	pumpMutex = make_unique<CMutex>(getName("PumpMutex", _id, ""));
 	
-	// producer consumer arrangement where pump is the producer
-	pumpPs = make_unique<CSemaphore>(getName("PumpProducerPs", _id, ""), 0, 1);
-	pumpCs = make_unique<CSemaphore>(getName("PumpProducerCs", _id, ""), 1, 1);
-
-	// producer consumer arrangement where computer is the producer
-	comPs = make_unique<CSemaphore>(getName("ComProducerPs", _id, ""), 0, 1);
-	comCs = make_unique<CSemaphore>(getName("ComProducerCs", _id, ""), 1, 1);
-
+	
 	dataPool = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
 	data.reset(static_cast<CustomerRecord*>(dataPool->LinkDataPool()));
 	dpMutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
+
+	txnApproved = make_unique<CEvent>(getName("TxnApprovedByPump", _id, ""));
+
+	// Create a rendezvous object on the heap
+	rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
 
 #if 0
 	cout << "Before initializing data pointer!" << endl; // should be printed only once.
@@ -88,14 +85,13 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	// Used to identify the idle pump
 	flagDataPool = make_unique<CDataPool>(getName("PumpBusyFlagDataPool", _id, ""), sizeof(PumpStatus));
 	pumpStatus.reset(static_cast<PumpStatus*>(flagDataPool->LinkDataPool()));
+	pumpStatusMutex = make_unique<CMutex>(getName("PumpStatusMutex", _id, ""));
 
-	pumpMutex->Wait();
+	pumpStatusMutex->Wait();
 	// Must initialize the values pointed by the pointer in the constructor.
 	pumpStatus->busy = false;
 	pumpStatus->isTransactionCompleted = true;
-	pumpStatus->txnStatus = customer.txnStatus;
-	assert(!pumpStatus->busy && pumpStatus->isTransactionCompleted);
-	pumpMutex->Signal();
+	pumpStatusMutex->Signal();
 
 	windowMutex->Wait();
 	cout << "Pump " << _id << " has been created." << endl;
@@ -201,6 +197,7 @@ Pump::getFuel()
 
 	if (customer.txnStatus == TxnStatus::Approved) {
 		if (chosen_tank.readVolume() >= customer.requestedVolume) {
+			txnApproved->Signal();
 			do {
 				if (chosen_tank.decrement()) {
 					windowMutex->Wait();
@@ -227,17 +224,17 @@ Pump::getFuel()
 		cout << "Customer transaction was denied by the gas station attendant. Fuel cannot be dispensed." << endl;
 		// No charge to the customer in this branch.
 	}
-	pumpMutex->Wait();
+	pumpStatusMutex->Wait();
 	cout << "getFuel informs the completion of the transaction to the customer" << endl;
 	pumpStatus->isTransactionCompleted = true;
-	assert(pumpStatus->isTransactionCompleted);
-	pumpMutex->Signal();
+	pumpStatusMutex->Signal();
 }
 
 void
 Pump::resetPump()
 {
 	cout << "Entered resetPump" << endl;
+	assert(pumpStatus->busy == true);
 	dpMutex->Wait();
 	customer.resetToDefault();
 
@@ -262,21 +259,14 @@ Pump::resetPump()
 	} while ( *data != customer );
 	dpMutex->Signal();
 
-	pumpMutex->Wait();
+	pumpStatusMutex->Wait();
 	pumpStatus->busy = false; // notify the customer the transaction is done.
-	pumpStatus->txnStatus = customer.txnStatus;
-	pumpMutex->Signal();
+	pumpStatusMutex->Signal();
 	cout << "Exited resetPump" << endl;
 }
 void
 Pump::readPipe()
 {
-#if DEBUG_MODE
-	windowMutex->Wait();
-	cout << "Pump " << _id << " is trying to read the pipe" << endl;
-	fflush(stdout);
-	windowMutex->Signal();
-#endif
 	/**
 	 * One should not use `pipeMutex->Wait();` and `pipeMutex->Signal();` to guard
 	 * `pipe->Read(&customer);`. For inter-process comunication with pipelines, either
@@ -292,18 +282,26 @@ Pump::readPipe()
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG before reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
+	windowMutex->Wait();
+	cout << "Pump " << _id << " has arrived at Rendezvous and is about to read the pipe ..." << endl;
+	fflush(stdout);
+	windowMutex->Signal();
+
+	rendezvousOnce();
+
 	pipe->Read(&customer);
 
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG after reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
 
-	pumpMutex->Wait();
+	pumpStatusMutex->Wait();
 	pumpStatus->isTransactionCompleted = false;
-	pumpMutex->Signal();
+	pumpStatusMutex->Signal();
 
 	cout << "Customer data read from the pipe is as follows:" << endl;
 	cout << "customer.name = " << customer.name << endl;
+	cout << "customer.pumpId = " << customer.pumpId << endl;
 	cout << "customer.creditCardNumber = " << customer.creditCardNumber << endl;
 	cout << "customer.requestedVolume = " << customer.requestedVolume << endl;
 	cout << "customer.receivedVolume = " << customer.receivedVolume << endl;
@@ -315,31 +313,22 @@ void
 Pump::waitForAuth()
 {
 	cout << "Entered waitForAuth" << endl;
-	do {
-		comPs->Wait();
-		cout << "ready to consume data" << endl;
-		dpMutex->Wait();
-		cout << "Access the data" << endl;
-		
-		cout << "Customer Name (before reading dp): " << customer.name << endl;
-		cout << "Customer Auth (before reading dp): " << txnStatusToString(customer.txnStatus) << endl;
+	assert(customer.txnStatus == TxnStatus::Pending);
 
-		customer.txnStatus = data->txnStatus;
-		// TODO: Is pumpMutex really necessary?
-		pumpMutex->Wait();
-		pumpStatus->txnStatus = customer.txnStatus;
-		pumpMutex->Signal();
+	txnApproved->Wait();
 
-		cout << "Customer Name (after reading dp): " << customer.name << endl;
-		cout << "Customer Auth (after reading dp): " << txnStatusToString(customer.txnStatus) << endl;
+	dpMutex->Wait();
 
-		dpMutex->Signal();
-		cout << "Have read the data" << endl;
-		comCs->Signal();
-		cout << "data consumed" << endl;
-	} while (customer.txnStatus == TxnStatus::Pending);
+	cout << "Customer Name (before reading dp): " << customer.name << endl;
+	cout << "Customer Auth (before reading dp): " << txnStatusToString(customer.txnStatus) << endl;
 
-	
+	customer.txnStatus = data->txnStatus;
+
+	cout << "Customer Name (after reading dp): " << customer.name << endl;
+	cout << "Customer Auth (after reading dp): " << txnStatusToString(customer.txnStatus) << endl;
+
+	dpMutex->Signal();
+
 
 	cout << "Exited waitForAuth" << endl;
 }
@@ -348,4 +337,15 @@ int
 Pump::getId()
 {
 	return _id;
+}
+
+void
+Pump::rendezvousOnce()
+{
+	static bool has_run = false;
+
+	if (!has_run) {
+		rendezvous->Wait();
+		has_run = true;
+	}
 }

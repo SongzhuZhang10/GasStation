@@ -19,9 +19,8 @@ unique_ptr<CMutex> windowMutex;
 vector<float> tankReadingsPercent(NUM_TANKS, 0.0f);
 vector<float> tankReadings(NUM_TANKS, 0.0f);
 
-vector<unique_ptr<PumpData>> pumps;
-
 unique_ptr<CTypedPipe<Cmd>> attendentPipe;
+unique_ptr<CTypedPipe<CustomerRecord>> customerPipe;
 
 TxnListPrinter::TxnListPrinter(list<CustomerRecord>& lst) : lst(&lst)
 {
@@ -32,8 +31,9 @@ void
 TxnListPrinter::printNew()
 {
 	static int count = 0;
+	static size_t last_size = 0;
 	const int offset = 11;
-
+	
 	//mutex->Wait();
 	txnListMutex->Wait();
 	if (last_size < lst->size()) {
@@ -60,28 +60,26 @@ setupComputer()
 		tankDp.emplace_back(make_unique<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
 		tankDpData.emplace_back(static_cast<TankData*>(tankDp[i]->LinkDataPool()));
 	}
-	for (int i = 0; i < NUM_PUMPS; i++) {
-		pumps.emplace_back(make_unique<PumpData>(i));
-	}
+	
 	txnListMutex = make_unique<CMutex>("TransactionListMutex");
 	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
 	attendentPipe = make_unique<CTypedPipe<Cmd>>("AttendentPipe", 1);
+	customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
 }
 
-void
-recordTxn(const unique_ptr<PumpData>& pump_data_ptr)
+UINT __stdcall
+recordTxn(void* args)
 {
+	CustomerRecord txn;
+	while (true) {
+		customerPipe->Read(&txn);
 
-	CustomerRecord txn = pump_data_ptr->getData();
-	
-	if (txn.txnStatus == TxnStatus::Done) {
-		txn.txnStatus = TxnStatus::Archived;
-		pump_data_ptr->archiveData();
-		assert(pump_data_ptr->getData().txnStatus == TxnStatus::Archived);
 		txnListMutex->Wait();
 		txnList.push_back(txn);
 		txnListMutex->Signal();
+		
 	}
+	return 0;
 }
 
 void
@@ -116,6 +114,7 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 		cout << "Received Volume (L):       " << record.receivedVolume               << "          " << "\n";
 		cout << "Total Cost ($):            " << record.cost                         << "          " << "\n";
 		cout << "Transaction Status:        " << txnStatusToString(record.txnStatus) << "          " << "\n";
+		cout << "Pump ID:                   " << record.pumpId                       << "          " << "\n";
 	}
 	cout << "----------------------------------------------------\n";
 	cout << "\n";
@@ -124,26 +123,7 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 }
 
 
-UINT __stdcall
-readPump(void* args)
-{
-	int id = *(int*)(args);
-	assert(id >= 0 && id <= 3);
 
-	pumps[id]->printCustomer(pumps[id]->getData());
-
-	while (true) {
-
-		pumps[id]->readData();
-
-		recordTxn(pumps[id]);
-
-		pumps[id]->printPumpData();
-
-		SLEEP(REFRESH_RATE);
-	}
-	return 0;
-}
 
 UINT __stdcall
 printTxnHistory(void* args)

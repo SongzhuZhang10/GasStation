@@ -22,17 +22,11 @@ private:
 	// to protect data pointer pointing to the data in the data pool
 	unique_ptr<CMutex> dpMutex;
 
-	unique_ptr<CSemaphore> pumpPs; // pump is the producer
-	unique_ptr<CSemaphore> pumpCs; // pump is the producer
-
-	unique_ptr<CSemaphore> comPs; // computer is the producer
-	unique_ptr<CSemaphore> comCs; // computer is the producer
-
 	unique_ptr<CTypedPipe<CustomerRecord>> pipe;
 	unique_ptr<CMutex> pipeMutex;
 
 	// to protect `pumpStatus` resource
-	unique_ptr<CMutex> pumpMutex;
+	unique_ptr<CMutex> pumpStatusMutex;
 
 	// to protect DOS window from being shared by multiple threads at the same time
 	unique_ptr<CMutex> windowMutex;
@@ -41,13 +35,16 @@ private:
 
 	vector<unique_ptr<FuelTank>>& tanks_;
 
+	unique_ptr<CEvent> txnApproved;
+
+	unique_ptr<CRendezvous> rendezvous;
 	// To create a class thread out of this function, the return value type must be `int`.
 	void readPipe();
 	void getFuel();
 	void resetPump();
 	void sendTransactionInfo();
 	void waitForAuth();
-	//int serviceCustomer(void* args);
+	void rendezvousOnce();
 	int main();
 	
 	FuelTank& getTank(int id);

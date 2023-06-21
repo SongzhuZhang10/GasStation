@@ -2,20 +2,11 @@
 
 PumpData::PumpData(int id) : _id(id)
 {
-	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
+	windowMutex = make_unique<CMutex>("CustomerWindowMutex");
 
 	dp = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
 	// Must use the reset function to avoid the error E0349 `no operator "=" matches these operands 
 	dpData.reset(static_cast<CustomerRecord*>(dp->LinkDataPool()));
-#if 0
-	// producer consumer arrangement where pump is the producer
-	pumpPs = make_unique<CSemaphore>(getName("PumpProducerPs", _id, ""), 0, 1);
-	pumpCs = make_unique<CSemaphore>(getName("PumpProducerCs", _id, ""), 1, 1);
-#endif
-
-	// producer consumer arrangement where computer is the producer
-	comPs = make_unique<CSemaphore>(getName("ComProducerPs", _id, ""), 0, 1);
-	comCs = make_unique<CSemaphore>(getName("ComProducerCs", _id, ""), 1, 1);
 
 	mutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
 	assert(data.txnStatus == TxnStatus::Pending && prev_data.txnStatus == TxnStatus::Pending);
@@ -97,7 +88,11 @@ PumpData::archiveData()
 CustomerRecord
 PumpData::getData() const
 {
-	return data;
+	mutex->Wait();
+	CustomerRecord temp = data;
+	mutex->Signal();
+
+	return temp;
 }
 
 void

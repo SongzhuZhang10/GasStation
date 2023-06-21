@@ -33,15 +33,17 @@
 constexpr int NUM_TANKS = 4;
 constexpr int NUM_PUMPS = 4;
 
+constexpr int NUM_CUSTOMERS = 8;
+
 constexpr float TANK_CAPACITY = 500.0f;
 constexpr float FLOW_RATE = 5.0f;
 
 
 constexpr unsigned int TANK_UI_POSITION = 5;
 constexpr unsigned int CMD_POSITION = 10;
-constexpr unsigned int PUMP_STATUS_POSITION = 12;
-
-constexpr unsigned int TXN_LIST_POSITION = 12 + 56;
+constexpr unsigned int PUMP_STATUS_POSITION = 4;
+constexpr unsigned int CUSTOMER_STATUS_POSITION = 54;
+constexpr unsigned int TXN_LIST_POSITION = 11;
 
 //constexpr unsigned int tank_debug_info_position = 40;
 
@@ -168,11 +170,9 @@ struct PumpStatus
 	// two bool flags.
 	bool isTransactionCompleted;
 	bool busy;
-	TxnStatus txnStatus;
 	PumpStatus() :
 		busy(false),
-		isTransactionCompleted(true), // indicating the previous transaction was completed
-		txnStatus(TxnStatus::Pending)
+		isTransactionCompleted(true) // indicating the previous transaction was completed
 		{} 
 		
 };

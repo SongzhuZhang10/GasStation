@@ -14,19 +14,13 @@ int main(void) {
 
 	vector<int> threadIds = { 0, 1, 2, 3 };
 	vector<unique_ptr<CThread>> readTankThreads;
-	vector<unique_ptr<CThread>> readPumpThreads;
+	
 	vector<unique_ptr<CThread>> transactionThreads;
 
 	for (int i = 0; i < NUM_TANKS; i++) {
 		// Make read tank threads active at creation time can avoid UI being garbled.
 		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
 	}
-
-	for (int i = 0; i < NUM_PUMPS; i++) {
-		readPumpThreads.emplace_back(make_unique<CThread>(readPump, ACTIVE, &threadIds[i]));
-	}
-
-	SLEEP(1500);
 
 	/* If you want to pass no arguments to the thread function by using NULL macro,
 	 * then it's better to create CThread object directly rather than creating a CThread pointer.
@@ -37,10 +31,8 @@ int main(void) {
 	 * after them!
 	 */
 	CThread printTxnHistoryThread(printTxnHistory, ACTIVE, NULL);
-	
-	for (const auto& t : readPumpThreads) {
-		t->WaitForThread();
-	}
+	CThread recordTxnThread(recordTxn, ACTIVE, NULL);
+
 	for (const auto& t : transactionThreads) {
 		t->WaitForThread();
 	}
@@ -48,6 +40,7 @@ int main(void) {
 		t->WaitForThread();
 	}
 	printTxnHistoryThread.WaitForThread();
+	recordTxnThread.WaitForThread();
 
 	cout << "Press Enter to terminate the Computer process." << endl;
 	waitForKeyPress();
