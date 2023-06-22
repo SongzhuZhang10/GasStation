@@ -2,25 +2,8 @@
 
 
 int main(void) {
-	MOVE_CURSOR(0, 0);
-	SLEEP(5000);
 
-	unique_ptr<CMutex> windowMutex = make_unique<CMutex>("ComputerWindowMutex");
-	
-	cout << "--------------------------------------------------------------------------------" << endl;
-	cout << "                           Gas Station Computer (GSC)                           " << endl;
-	cout << "--------------------------------------------------------------------------------" << endl;
 	setupComputer();
-
-	vector<int> threadIds = { 0, 1, 2, 3 };
-	vector<unique_ptr<CThread>> readTankThreads;
-	
-	vector<unique_ptr<CThread>> transactionThreads;
-
-	for (int i = 0; i < NUM_TANKS; i++) {
-		// Make read tank threads active at creation time can avoid UI being garbled.
-		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
-	}
 
 	/* If you want to pass no arguments to the thread function by using NULL macro,
 	 * then it's better to create CThread object directly rather than creating a CThread pointer.
@@ -33,14 +16,11 @@ int main(void) {
 	CThread printTxnHistoryThread(printTxnHistory, ACTIVE, NULL);
 	CThread recordTxnThread(recordTxn, ACTIVE, NULL);
 
-	for (const auto& t : transactionThreads) {
-		t->WaitForThread();
-	}
-	for (const auto& t : readTankThreads) {
-		t->WaitForThread();
-	}
+	
 	printTxnHistoryThread.WaitForThread();
 	recordTxnThread.WaitForThread();
+
+	exitComputer();
 
 	cout << "Press Enter to terminate the Computer process." << endl;
 	waitForKeyPress();

@@ -41,9 +41,9 @@ constexpr float FLOW_RATE = 5.0f;
 
 constexpr unsigned int TANK_UI_POSITION = 5;
 constexpr unsigned int CMD_POSITION = 10;
-constexpr unsigned int PUMP_STATUS_POSITION = 4;
-constexpr unsigned int CUSTOMER_STATUS_POSITION = 54;
-constexpr unsigned int TXN_LIST_POSITION = 11;
+constexpr unsigned int PUMP_STATUS_POSITION = 11;
+constexpr unsigned int CUSTOMER_STATUS_POSITION = 4;
+constexpr unsigned int TXN_LIST_POSITION = 61;
 
 //constexpr unsigned int tank_debug_info_position = 40;
 

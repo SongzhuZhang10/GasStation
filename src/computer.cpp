@@ -14,13 +14,30 @@ vector<unique_ptr<CDataPool>> tankDp;
 vector<unique_ptr<TankData>> tankDpData;
 vector<unique_ptr<CMutex>> tankDpMutex;
 
-unique_ptr<CMutex> windowMutex;
+unique_ptr<CMutex> windowMutex = make_unique<CMutex>("ComputerWindowMutex");
 
 vector<float> tankReadingsPercent(NUM_TANKS, 0.0f);
 vector<float> tankReadings(NUM_TANKS, 0.0f);
 
 unique_ptr<CTypedPipe<Cmd>> attendentPipe;
-unique_ptr<CTypedPipe<CustomerRecord>> customerPipe;
+
+vector<unique_ptr<CSemaphore>> producer, consumer;
+
+vector<unique_ptr<CThread>> readPumpThreads;
+vector<int> threadIds = { 0, 1, 2, 3 };
+vector<unique_ptr<PumpData>> pumpDataOps;
+vector<unique_ptr<CThread>> readTankThreads;
+
+
+/***********************************************
+ *                                             *
+ *                Transactions                 *
+ *                                             *
+ ***********************************************/
+
+vector<unique_ptr<CThread>> transactionThreads;
+unique_ptr<CTypedPipe<CustomerRecord>> customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
+unique_ptr<CMutex> customerPipeMutex = make_unique<CMutex>("CustomerPipeMutex");
 
 TxnListPrinter::TxnListPrinter(list<CustomerRecord>& lst) : lst(&lst)
 {
@@ -59,12 +76,50 @@ setupComputer()
 		tankDpMutex.emplace_back(make_unique<CMutex>(getName("FuelTankMutex", i, "")));
 		tankDp.emplace_back(make_unique<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
 		tankDpData.emplace_back(static_cast<TankData*>(tankDp[i]->LinkDataPool()));
+		// Make read tank threads active at creation time can avoid UI being garbled.
+		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
 	}
-	
+#if 1
+	for (int i = 0; i < NUM_PUMPS; i++) {
+		// semaphore with initial value 0 and max value 1
+		producer.emplace_back(make_unique<CSemaphore>(getName("PS", i, ""), 0, 1));
+		// semaphore with initial value 1 and max value 1
+		consumer.emplace_back(make_unique<CSemaphore>(getName("CS", i, ""), 1, 1));
+		
+		
+	}
+#endif
+	for (int i = 0; i < NUM_PUMPS; i++) {
+		pumpDataOps.emplace_back(make_unique<PumpData>(i));
+		readPumpThreads.emplace_back(make_unique<CThread>(readPump, ACTIVE, &threadIds[i]));
+	}
+
 	txnListMutex = make_unique<CMutex>("TransactionListMutex");
 	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
 	attendentPipe = make_unique<CTypedPipe<Cmd>>("AttendentPipe", 1);
 	customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
+
+	windowMutex->Wait();
+	MOVE_CURSOR(0, 0);
+	cout << "--------------------------------------------------------------------------------" << endl;
+	cout << "                           Gas Station Computer (GSC)                           " << endl;
+	cout << "--------------------------------------------------------------------------------" << endl;
+	windowMutex->Signal();
+
+	
+}
+
+void exitComputer()
+{
+	for (const auto& t : transactionThreads) {
+		t->WaitForThread();
+	}
+	for (const auto& t : readTankThreads) {
+		t->WaitForThread();
+	}
+	for (const auto& t : readPumpThreads) {
+		t->WaitForThread();
+	}
 }
 
 UINT __stdcall
@@ -122,13 +177,56 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 	windowMutex->Signal();
 }
 
+void
+writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr)
+{
 
+	CustomerRecord txn = pump_data_ptr->getData();
 
+	if (txn.txnStatus == TxnStatus::Done) {
+		txn.txnStatus = TxnStatus::Archived;
+		pump_data_ptr->archiveData();
+		assert(pump_data_ptr->getData().txnStatus == TxnStatus::Archived);
+
+		customerPipeMutex->Wait();
+		customerPipe->Write(&txn);
+		customerPipeMutex->Signal();
+	}
+}
+
+UINT __stdcall
+readPump(void* args)
+{
+	int id = *(int*)(args);
+	assert(id >= 0 && id <= 3);
+
+	pumpDataOps[id]->printPumpStatus(pumpDataOps[id]->getData());
+
+	while (true) {
+
+		pumpDataOps[id]->readData();
+
+		writeTxnToPipe(pumpDataOps[id]);
+
+		pumpDataOps[id]->printPumpData();
+
+		SLEEP(REFRESH_RATE);
+	}
+	return 0;
+}
 
 UINT __stdcall
 printTxnHistory(void* args)
 {
 	Cmd cmd = Cmd::Invalid;
+
+	windowMutex->Wait();
+	MOVE_CURSOR(0, TXN_LIST_POSITION - 3);
+	cout << "--------------------------------------------------------------------------------" << endl;
+	cout << "                           Transaction History                                  " << endl;
+	cout << "--------------------------------------------------------------------------------" << endl;
+	windowMutex->Signal();
+
 	while (true) {
 		attendentPipe->Read(&cmd);
 

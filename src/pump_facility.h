@@ -37,10 +37,10 @@ void setupPumpFacility();
  *                                             *
  ***********************************************/
 UINT __stdcall printCustomers(void* args);
-UINT __stdcall readPump(void* args);
+
 
 void printCustomerRecord(int idx);
-void writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr);
+
 
 
 

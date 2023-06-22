@@ -2,7 +2,7 @@
 
 PumpData::PumpData(int id) : _id(id)
 {
-	windowMutex = make_unique<CMutex>("PumpScreenMutex");
+	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
 
 	dp = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
 	// Must use the reset function to avoid the error E0349 `no operator "=" matches these operands 
@@ -18,30 +18,6 @@ PumpData::readData()
 {
 	mutex->Wait();
 	data = *dpData;
-
-#if 0
-	windowMutex->Wait();
-	//cout << "Auth status: " << txnStatusToString(dpData->txnStatus) << endl;
-	if (data.name != dpData->name)
-		cout << "BUG: name = " << dpData->name;
-	if (data.creditCardNumber != dpData->creditCardNumber)
-		cout << "BUG: creditCardNumber = " << dpData->creditCardNumber;
-	if (dpData->grade != data.grade)
-		cout << "BUG: fuel grade = " << fuelGradeToString(dpData->grade) << endl;
-	if (dpData->pumpId != data.pumpId)
-		cout << "BUG: pumpId = " << dpData->pumpId << endl;
-	if (dpData->requestedVolume != data.requestedVolume)
-		cout << "BUG: requestedVolume = " << dpData->requestedVolume << endl;
-	if (data.txnStatus != dpData->txnStatus)
-		cout << "BUG: txnStatus = " << txnStatusToString(dpData->txnStatus) << endl;
-	if (data.receivedVolume != dpData->receivedVolume)
-		cout << "BUG: receivedVolume = " << dpData->receivedVolume << endl;
-	if (sizeof(*dpData) != sizeof(data)) {
-		cout << "BUG: Size of data = " << sizeof(data) << endl;
-		cout << "BUG: Size of dp data = " << sizeof(sizeof(*dpData)) << endl;
-	}
-	windowMutex->Signal();
-#endif
 	assert(data == *dpData);
 	mutex->Signal();
 }
@@ -60,7 +36,6 @@ PumpData::archiveData()
 	mutex->Wait();
 	data.txnStatus = TxnStatus::Archived;
 	dpData->txnStatus = data.txnStatus;
-	//*dpData = data;
 	mutex->Signal();
 }
 
@@ -78,20 +53,6 @@ void
 PumpData::printPumpData()
 {
 	if (prev_data == data) {
-#if 0
-		windowMutex->Wait();
-		MOVE_CURSOR(0, DEBUG_1 + _id * 10);
-		cout << "DEBUG: data.name = " << data.name << endl;
-		cout << "DEBUG: data.txnStatus = " << txnStatusToString(data.txnStatus) << endl;
-		cout << "DEBUG: data.creditCardNumber = " << data.creditCardNumber << endl;
-		cout << "DEBUG: prev_data.name = " << prev_data.name << endl;
-		cout << "DEBUG: prev_data.txnStatus = " << txnStatusToString(prev_data.txnStatus) << endl;
-		cout << "DEBUG: ptrv_data.creditCardNumber = " << prev_data.creditCardNumber << endl;
-		cout << "return count: " << ++i << endl;
-		assert(data.name == prev_data.name);
-		fflush(stdout);
-		windowMutex->Signal();
-#endif
 		return;
 	}
 	else {
@@ -101,16 +62,15 @@ PumpData::printPumpData()
 		assert(data == prev_data);
 		mutex->Signal();
 
-		printCustomer(prev_data);
+		printPumpStatus(prev_data);
 	}
 }
 
 void
-PumpData::printCustomer(const CustomerRecord& record) const
+PumpData::printPumpStatus(const CustomerRecord& record) const
 {
 	windowMutex->Wait();
 	MOVE_CURSOR(0, PUMP_STATUS_POSITION + _id * 12);
-	//cout << "update count: " << ++j << endl;
 	cout << "--------------- Pump " << _id << " Status ---------------\n";
 	/*
 	 * For some reason, there are some residual characters on the DOS window that were printed from previous calls

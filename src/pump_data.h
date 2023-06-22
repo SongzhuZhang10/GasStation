@@ -24,8 +24,7 @@ private:
 public:
 	PumpData(int id);
 	void printPumpData();
-	void printCustomer(const CustomerRecord& record) const;
-	void printDpData();
+	void printPumpStatus(const CustomerRecord& record) const;
 	void readData();
 	void writeData();
 	void archiveData();

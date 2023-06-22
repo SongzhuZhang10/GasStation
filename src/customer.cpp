@@ -102,6 +102,7 @@ Customer::getFuel()
 
     // TODO: Consider using CEvent here.
     do {
+        // TODO: Get real time received volume and total cost directly from the GSC rather than from the pump data pool
         pumpStatusMutex[pumpId]->Wait();
         txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
         pumpStatusMutex[pumpId]->Signal();

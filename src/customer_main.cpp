@@ -67,7 +67,7 @@ readPump(void* args)
 	int id = *(int*)(args);
 	assert(id >= 0 && id <= 3);
 
-	pumps[id]->printCustomer(pumps[id]->getData());
+	pumps[id]->printPumpStatus(pumps[id]->getData());
 
 	while (true) {
 
