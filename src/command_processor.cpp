@@ -99,8 +99,26 @@ void CommandProcessor::run()
              */
             std::stringstream ss(input.substr(2));
 
+            /**
+             * In `ss >> number`, the extraction operator (`>>`) is used to extract an integer from the
+             * stringstream `ss` and store it in the variable `number`. This is similar to how you might
+             * use `std::cin >> number` to read an integer from the console.
+             * 
+             * When you use the extraction operator with a stringstream, the operator tries to interpret
+             * the sequence of characters stored in the stringstream `ss` as an integer and store it in
+             * the integer variable `number`.
+             * If it is able to do this, it returns a reference to the stringstream. This is considered
+             * a true value, meaning that if you use it in a condition like if (ss >> number), the
+             * condition will be true if the extraction was successful.
+             */
             if (!(ss >> number)) {
                 std::cout << "Please enter a command followed by an integer number.\n";
+                commandCompleted = true;
+                continue;
+            }
+
+            if (number < 0 || number > 3) {
+                std::cout << "Please enter a number that is in the range of 0 to " << NUM_PUMPS << ".\n";
                 commandCompleted = true;
                 continue;
             }

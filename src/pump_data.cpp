@@ -8,20 +8,32 @@ PumpData::PumpData(int id) : _id(id)
 	// Must use the reset function to avoid the error E0349 `no operator "=" matches these operands 
 	dpData.reset(static_cast<CustomerRecord*>(dp->LinkDataPool()));
 
+	// TODO: This mutex may be used for customers to directly get real time data from computer directly.
 	mutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
 	assert(data.txnStatus == TxnStatus::Pending && prev_data.txnStatus == TxnStatus::Pending);
+
+	// semaphore with initial value 0 and max value 1
+	producer = make_unique<CSemaphore>(getName("PS", _id, ""), 0, 1);
+	// semaphore with initial value 1 and max value 1
+	consumer = make_unique<CSemaphore>(getName("CS", _id, ""), 1, 1);
 
 }
 
 void
 PumpData::readData()
 {
+	
+	producer->Wait();
+
 	mutex->Wait();
 	data = *dpData;
 	assert(data == *dpData);
 	mutex->Signal();
-}
 
+	consumer->Signal();
+	
+}
+#if 0
 void
 PumpData::writeData()
 {
@@ -29,14 +41,19 @@ PumpData::writeData()
 	*dpData = data;
 	mutex->Signal();
 }
-
+#endif
 void
 PumpData::archiveData()
 {
+
+
 	mutex->Wait();
 	data.txnStatus = TxnStatus::Archived;
-	dpData->txnStatus = data.txnStatus;
 	mutex->Signal();
+
+	dpData->txnStatus = data.txnStatus;
+
+	
 }
 
 CustomerRecord

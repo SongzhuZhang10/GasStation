@@ -106,7 +106,6 @@ Customer::getFuel()
         pumpStatusMutex[pumpId]->Wait();
         txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
         pumpStatusMutex[pumpId]->Signal();
-        SLEEP(3000);
     } while (!txn_completed);
 }
 
@@ -120,17 +119,7 @@ Customer::writePipe(CustomerRecord* customer)
      * then it may not be necessary to mutex here. Verify the mutex is truly necessary later on.
      */
     pipeMutex[pumpId]->Wait();
-#if 0
-    if (pipe[pumpId]->TestForData() != 0)
-    {
-        windowMutex->Wait();
-        cout << "Name: " << customer->name << "          " << endl;
-        cout << "pumpId = " << pumpId << endl;
-        cout << "Numer of items in pipe = " << pipe[pumpId]->TestForData() << endl;
-        windowMutex->Signal();
-    }
-#endif
-    //assert(pipe[pumpId]->TestForData() == 0);
+
     pipe[pumpId]->Write(customer);
 
     pipeMutex[pumpId]->Signal();

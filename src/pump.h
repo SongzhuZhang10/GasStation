@@ -38,6 +38,9 @@ private:
 	unique_ptr<CEvent> txnApproved;
 
 	unique_ptr<CRendezvous> rendezvous;
+
+	unique_ptr<CSemaphore> producer, consumer;
+
 	// To create a class thread out of this function, the return value type must be `int`.
 	void readPipe();
 	void getFuel();

@@ -21,8 +21,6 @@ vector<float> tankReadings(NUM_TANKS, 0.0f);
 
 unique_ptr<CTypedPipe<Cmd>> attendentPipe;
 
-vector<unique_ptr<CSemaphore>> producer, consumer;
-
 vector<unique_ptr<CThread>> readPumpThreads;
 vector<int> threadIds = { 0, 1, 2, 3 };
 vector<unique_ptr<PumpData>> pumpDataOps;
@@ -53,6 +51,9 @@ TxnListPrinter::printNew()
 	
 	//mutex->Wait();
 	txnListMutex->Wait();
+	if (lst->size() == 0)
+		cout << "Cannot print txn because list size is 0." << endl;
+
 	if (last_size < lst->size()) {
 		auto it = lst->begin();
 		advance(it, last_size);
@@ -79,16 +80,7 @@ setupComputer()
 		// Make read tank threads active at creation time can avoid UI being garbled.
 		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
 	}
-#if 1
-	for (int i = 0; i < NUM_PUMPS; i++) {
-		// semaphore with initial value 0 and max value 1
-		producer.emplace_back(make_unique<CSemaphore>(getName("PS", i, ""), 0, 1));
-		// semaphore with initial value 1 and max value 1
-		consumer.emplace_back(make_unique<CSemaphore>(getName("CS", i, ""), 1, 1));
-		
-		
-	}
-#endif
+
 	for (int i = 0; i < NUM_PUMPS; i++) {
 		pumpDataOps.emplace_back(make_unique<PumpData>(i));
 		readPumpThreads.emplace_back(make_unique<CThread>(readPump, ACTIVE, &threadIds[i]));
@@ -186,7 +178,6 @@ writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr)
 	if (txn.txnStatus == TxnStatus::Done) {
 		txn.txnStatus = TxnStatus::Archived;
 		pump_data_ptr->archiveData();
-		assert(pump_data_ptr->getData().txnStatus == TxnStatus::Archived);
 
 		customerPipeMutex->Wait();
 		customerPipe->Write(&txn);
@@ -210,7 +201,7 @@ readPump(void* args)
 
 		pumpDataOps[id]->printPumpData();
 
-		SLEEP(REFRESH_RATE);
+		//SLEEP(REFRESH_RATE);
 	}
 	return 0;
 }
@@ -230,8 +221,11 @@ printTxnHistory(void* args)
 	while (true) {
 		attendentPipe->Read(&cmd);
 
-		if (cmd == Cmd::PrintTxn)
+		if (cmd == Cmd::PrintTxn) {
+			//cout << "Print txn command received!" << endl;
 			txnPrinter.printNew();
+			
+		}
 
 		SLEEP(5000);
 	}

@@ -22,8 +22,10 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	// Create a rendezvous object on the heap
 	rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
 
-
-	//assert(sizeof(*data) == sizeof(customer));
+	// semaphore with initial value 0 and max value 1
+	producer = make_unique<CSemaphore>(getName("PS", _id, ""), 0, 1);
+	// semaphore with initial value 1 and max value 1
+	consumer = make_unique<CSemaphore>(getName("CS", _id, ""), 1, 1);
 
 	/*
 	 * 1. Do not forget to initialize the value pointed by the pointer `data`. Or, the data pointed
@@ -36,14 +38,14 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	 * If both the pump class and the computer class initialize the data pool in their own constructor,
 	  an exception in the memcpy.asm file will be induced.
 	 */
-	dpMutex->Wait();
 	do {
 		assert(customer.txnStatus == TxnStatus::Pending);
+		dpMutex->Wait();
 		*data = customer;
+		dpMutex->Signal();
 	} while (data->name != customer.name || data->creditCardNumber != customer.creditCardNumber);
 	assert(customer.txnStatus == TxnStatus::Pending);
-
-	dpMutex->Signal();
+	
 
 
 	// Used to identify the idle pump
@@ -62,11 +64,6 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 int
 Pump::main()
 {
-#if 0
-	ClassThread<Pump> readPipeThread(this, &Pump::serviceCustomer, ACTIVE, NULL);
-	readPipeThread.WaitForThread();
-	return 0;
-#endif
 	while (true) {
 
 		if (customer.txnStatus != TxnStatus::Pending)
@@ -93,9 +90,6 @@ Pump::main()
 
 		getFuel();
 
-		sendTransactionInfo();
-
-		SLEEP(4000);
 		resetPump();
 	}
 	return 0;
@@ -105,10 +99,14 @@ Pump::main()
 void
 Pump::sendTransactionInfo()
 {
+	consumer->Wait();
+
 	dpMutex->Wait();
 	*data = customer;
-	dpMutex->Signal();
 	assert(*data == customer);
+	dpMutex->Signal();
+	
+	producer->Signal();
 }
 
 FuelTank&
@@ -140,7 +138,6 @@ Pump::getFuel()
 					SLEEP(1200);
 				}
 			} while (customer.receivedVolume < customer.requestedVolume && chosen_tank.checkRemainingVolume());
-			customer.txnStatus = TxnStatus::Done;
 		}
 		else {
 			cout << "Warning: The fuel tank does not have enough fuel left. Customer transaction cannot be completed." << endl;
@@ -152,6 +149,11 @@ Pump::getFuel()
 		cout << "Customer transaction was denied by the gas station attendant. Fuel cannot be dispensed." << endl;
 		// No charge to the customer in this branch.
 	}
+
+	customer.txnStatus = TxnStatus::Done;
+	sendTransactionInfo();
+
+	//sendTransactionInfo(); // This is to ensure TxnStatus::Done is sent successfully to the computer.
 	pumpStatusMutex->Wait();
 	// Inform the completion of the transaction to the customer
 	pumpStatus->isTransactionCompleted = true;
@@ -164,11 +166,7 @@ Pump::resetPump()
 	assert(pumpStatus->busy == true);
 	customer.resetToDefault();
 
-	dpMutex->Wait();
-	do {
-		*data = customer;
-	} while ( *data != customer );
-	dpMutex->Signal();
+	sendTransactionInfo();
 
 	pumpStatusMutex->Wait();
 	pumpStatus->busy = false; // notify the customer the transaction is done.

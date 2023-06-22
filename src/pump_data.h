@@ -19,7 +19,9 @@ private:
 	unique_ptr<CMutex> windowMutex;
 
 	unique_ptr<CDataPool> dp;
-	unique_ptr<CustomerRecord> dpData;	
+	unique_ptr<CustomerRecord> dpData;
+
+	unique_ptr<CSemaphore> producer, consumer;
 
 public:
 	PumpData(int id);
