@@ -2,7 +2,7 @@
 
 PumpData::PumpData(int id) : _id(id)
 {
-	windowMutex = make_unique<CMutex>("CustomerWindowMutex");
+	windowMutex = make_unique<CMutex>("PumpScreenMutex");
 
 	dp = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
 	// Must use the reset function to avoid the error E0349 `no operator "=" matches these operands 
@@ -11,27 +11,6 @@ PumpData::PumpData(int id) : _id(id)
 	mutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
 	assert(data.txnStatus == TxnStatus::Pending && prev_data.txnStatus == TxnStatus::Pending);
 
-}
-
-void
-PumpData::printDpData()
-{
-	mutex->Wait();
-	windowMutex->Wait();
-	MOVE_CURSOR(0, CMD_POSITION + _id * 12);
-	cout << "--------------- DP Data Contents ---------------" << endl;
-	cout << "Name:                  " << dpData->name << endl;
-	cout << "Credit Card Number:    " << dpData->creditCardNumber << endl;
-	cout << "Grade:                 " << fuelGradeToString(dpData->grade) << endl;
-	cout << "Requested Volume:      " << dpData->requestedVolume << endl;
-	cout << "Received Volume:       " << dpData->receivedVolume << endl;
-	cout << "Cost:                  " << dpData->cost << endl;
-	cout << "Pump ID:               " << dpData->pumpId << endl;
-	cout << "---------------------------------------------\n";
-	cout << "\n";
-	fflush(stdout);
-	windowMutex->Signal();
-	mutex->Signal();
 }
 
 void

@@ -22,19 +22,7 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	// Create a rendezvous object on the heap
 	rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
 
-#if 0
-	cout << "Before initializing data pointer!" << endl; // should be printed only once.
-	cout << "data->name = " << data->name << endl;
-	cout << "data->creditCardNumber = " << data->creditCardNumber << endl;
-	cout << "data->pumpId = " << data->pumpId << endl;
 
-
-	/* TODO: Check if the value of the pointer is the same as the one in the computer class */
-	dpMutex->Wait();
-	resizeToFit(data->creditCardNumber, "0000 0000 0000");
-	resizeToFit(data->name, "Unknown");
-	dpMutex->Signal();
-#endif
 	//assert(sizeof(*data) == sizeof(customer));
 
 	/*
@@ -50,35 +38,11 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	 */
 	dpMutex->Wait();
 	do {
-		cout << "Initializing data pointer!" << endl; // should be printed only once.	
-		//data->txnStatus = customer.txnStatus;
-		//data->pumpId = customer.pumpId;
-		//data->requestedVolume = customer.requestedVolume;
-		//resizeToFit(data->name, customer.name);
-		//data->creditCardNumber = customer.creditCardNumber;
 		assert(customer.txnStatus == TxnStatus::Pending);
-		*data = customer;	
-
-		cout << "data->name = " << data->name << endl;
-		cout << "data->creditCardNumber = " << data->creditCardNumber << endl;
-		cout << "data->pumpId = " << data->pumpId << endl;
+		*data = customer;
 	} while (data->name != customer.name || data->creditCardNumber != customer.creditCardNumber);
 	assert(customer.txnStatus == TxnStatus::Pending);
 
-	if (data->name != customer.name)
-		cout << "BUG: Name: " << data->name << endl;
-	if (data->creditCardNumber != customer.creditCardNumber)
-		cout << "BUG: Credit card number: " << data->creditCardNumber << endl;
-	if (data->grade != customer.grade)
-		cout << "BUG: Fuel Grade: " << fuelGradeToString(data->grade) << endl;
-	if (data->requestedVolume != customer.requestedVolume)
-		cout << "BUG: Requested volume: " << data->requestedVolume << endl;
-	if (data->pumpId != customer.pumpId)
-		cout << "BUG: Pump ID: " << data->pumpId << endl;
-	if (sizeof(*data) != sizeof(customer)) {
-		cout << "BUG: Size of *data = " << sizeof(*data) << endl;
-		cout << "BUG: Size of customer = " << sizeof(customer) << endl;
-	}
 	dpMutex->Signal();
 
 
@@ -93,10 +57,6 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 	pumpStatus->isTransactionCompleted = true;
 	pumpStatusMutex->Signal();
 
-	windowMutex->Wait();
-	cout << "Pump " << _id << " has been created." << endl;
-	fflush(stdout);
-	windowMutex->Signal();
 }
 
 int
@@ -108,10 +68,6 @@ Pump::main()
 	return 0;
 #endif
 	while (true) {
-		windowMutex->Wait();
-		cout << "Pump " << _id << " is ready to service a customer." << endl;
-		fflush(stdout);
-		windowMutex->Signal();
 
 		if (customer.txnStatus != TxnStatus::Pending)
 			cout << "DEBUG 1: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
@@ -149,32 +105,10 @@ Pump::main()
 void
 Pump::sendTransactionInfo()
 {
-	cout << "Entered sendTransactionInfo" << endl;
-
 	dpMutex->Wait();
-
 	*data = customer;
-	
-	if (data->name != customer.name)
-		cout << "BUG: Name: " << data->name << endl;
-	if (data->creditCardNumber != customer.creditCardNumber)
-		cout << "BUG: Credit card number: " << data->creditCardNumber << endl;
-	if (data->grade != customer.grade)
-		cout << "BUG: Fuel Grade: " << fuelGradeToString(data->grade) << endl;
-	if (data->requestedVolume != customer.requestedVolume)
-		cout << "BUG: Requested volume: " << data->requestedVolume << endl;
-	if (data->pumpId != customer.pumpId)
-		cout << "BUG: Pump ID: " << data->pumpId << endl;
-	if (data->receivedVolume != customer.receivedVolume)
-		cout << "BUG: receivedVolume = " << data->receivedVolume << endl;
-	if (sizeof(*data) != sizeof(customer))
-		cout << "BUG: Size of data = " << sizeof(*data) << endl;
-	if (data->txnStatus != customer.txnStatus)
-		cout << "BUG: data->txnStatus = " << txnStatusToString(data->txnStatus) << endl;
 	dpMutex->Signal();
-
 	assert(*data == customer);
-	cout << "Exicted sendTransactionInfo" << endl;
 }
 
 FuelTank&
@@ -200,12 +134,6 @@ Pump::getFuel()
 			txnApproved->Signal();
 			do {
 				if (chosen_tank.decrement()) {
-					windowMutex->Wait();
-					cout << chosen_tank.readVolume() << " liters of fuel left in the tank." << endl;
-					fflush(stdout);
-					windowMutex->Signal();
-					// TODO: Make this a running cost as apposed to a final cost available only
-					// after the requested fuel has all been dispensed.
 					customer.receivedVolume += FLOW_RATE;
 					customer.cost = price.getCost(customer.receivedVolume, customer.grade);
 					sendTransactionInfo();
@@ -225,7 +153,7 @@ Pump::getFuel()
 		// No charge to the customer in this branch.
 	}
 	pumpStatusMutex->Wait();
-	cout << "getFuel informs the completion of the transaction to the customer" << endl;
+	// Inform the completion of the transaction to the customer
 	pumpStatus->isTransactionCompleted = true;
 	pumpStatusMutex->Signal();
 }
@@ -233,36 +161,18 @@ Pump::getFuel()
 void
 Pump::resetPump()
 {
-	cout << "Entered resetPump" << endl;
 	assert(pumpStatus->busy == true);
-	dpMutex->Wait();
 	customer.resetToDefault();
 
-	
-
+	dpMutex->Wait();
 	do {
-		cout << "Initializing data pointer!" << endl; // should be printed only once.	
-		//data->txnStatus = customer.txnStatus;
-		//data->pumpId = customer.pumpId;
-		//data->requestedVolume = customer.requestedVolume;
-		//resizeToFit(data->name, customer.name);
-		//data->creditCardNumber = customer.creditCardNumber;
 		*data = customer;
-
-		cout << "data->name = " << data->name << endl;
-		cout << "data->creditCardNumber = " << data->creditCardNumber << endl;
-		cout << "data->pumpId = " << data->pumpId << endl;
-		cout << "data->cost = " << data->cost << endl;
-		cout << "data->requestedVolume = " << data->requestedVolume << endl;
-		cout << "data->receivedVolume = " << data->receivedVolume << endl;
-		cout << "data->txnStatus = " << txnStatusToString(data->txnStatus) << endl;
 	} while ( *data != customer );
 	dpMutex->Signal();
 
 	pumpStatusMutex->Wait();
 	pumpStatus->busy = false; // notify the customer the transaction is done.
 	pumpStatusMutex->Signal();
-	cout << "Exited resetPump" << endl;
 }
 void
 Pump::readPipe()
@@ -282,11 +192,7 @@ Pump::readPipe()
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG before reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
-	windowMutex->Wait();
-	cout << "Pump " << _id << " has arrived at Rendezvous and is about to read the pipe ..." << endl;
-	fflush(stdout);
-	windowMutex->Signal();
-
+	// This pump has arrived at Rendezvous and is about to read the pipe ...
 	rendezvousOnce();
 
 	pipe->Read(&customer);
@@ -299,38 +205,21 @@ Pump::readPipe()
 	pumpStatus->isTransactionCompleted = false;
 	pumpStatusMutex->Signal();
 
-	cout << "Customer data read from the pipe is as follows:" << endl;
-	cout << "customer.name = " << customer.name << endl;
-	cout << "customer.pumpId = " << customer.pumpId << endl;
-	cout << "customer.creditCardNumber = " << customer.creditCardNumber << endl;
-	cout << "customer.requestedVolume = " << customer.requestedVolume << endl;
-	cout << "customer.receivedVolume = " << customer.receivedVolume << endl;
-	cout << "customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 	assert(customer.txnStatus == TxnStatus::Pending);
 }
 
 void
 Pump::waitForAuth()
 {
-	cout << "Entered waitForAuth" << endl;
 	assert(customer.txnStatus == TxnStatus::Pending);
 
 	txnApproved->Wait();
 
 	dpMutex->Wait();
-
-	cout << "Customer Name (before reading dp): " << customer.name << endl;
-	cout << "Customer Auth (before reading dp): " << txnStatusToString(customer.txnStatus) << endl;
-
+	assert(data->txnStatus == TxnStatus::Approved);
 	customer.txnStatus = data->txnStatus;
-
-	cout << "Customer Name (after reading dp): " << customer.name << endl;
-	cout << "Customer Auth (after reading dp): " << txnStatusToString(customer.txnStatus) << endl;
-
 	dpMutex->Signal();
 
-
-	cout << "Exited waitForAuth" << endl;
 }
 
 int

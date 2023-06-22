@@ -9,7 +9,7 @@ constexpr int MAX_LITERS = 70;
 */
 Customer::Customer() : pumpId(-1)
 {
-    windowMutex = make_unique<CMutex>("CustomerWindowMutex");
+    windowMutex = make_unique<CMutex>("PumpScreenMutex");
 
     for (int i = 0; i < NUM_PUMPS; i++) {
         pipe.emplace_back(make_unique<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));

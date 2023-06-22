@@ -135,18 +135,22 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.cpp" />
+    <ClCompile Include="..\src\customer.cpp" />
     <ClCompile Include="..\src\fuel_price.cpp" />
     <ClCompile Include="..\src\fuel_tank.cpp" />
     <ClCompile Include="..\src\pump.cpp" />
+    <ClCompile Include="..\src\pump_data.cpp" />
     <ClCompile Include="..\src\pump_facility.cpp" />
     <ClCompile Include="..\src\rt.cpp" />
     <ClCompile Include="..\src\pump_facility_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\common.h" />
+    <ClInclude Include="..\src\customer.h" />
     <ClInclude Include="..\src\fuel_price.h" />
     <ClInclude Include="..\src\fuel_tank.h" />
     <ClInclude Include="..\src\pump.h" />
+    <ClInclude Include="..\src\pump_data.h" />
     <ClInclude Include="..\src\pump_facility.h" />
     <ClInclude Include="..\src\rt.h" />
   </ItemGroup>

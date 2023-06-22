@@ -4,7 +4,7 @@
 #include "pump_data.h"
 
 
-
+#if 0
 unique_ptr<CMutex> windowMutex = make_unique<CMutex>("CustomerWindowMutex");
 
 vector<unique_ptr<Customer>> customers;
@@ -18,6 +18,7 @@ vector<unique_ptr<PumpData>> pumps;
 unique_ptr<CTypedPipe<CustomerRecord>> customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
 unique_ptr<CMutex> customerPipeMutex = make_unique<CMutex>("CustomerPipeMutex");
 unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
+
 
 UINT __stdcall printCustomers(void* args);
 UINT __stdcall readPump(void* args);
@@ -152,4 +153,5 @@ main(void)
 	waitForKeyPress();
 	return 0;
 }
+#endif
 

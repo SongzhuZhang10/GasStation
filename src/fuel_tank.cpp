@@ -75,7 +75,7 @@ FuelTank::decrement()
 		data->remainingVolume = data->remainingVolume - FLOW_RATE;
 	}
 	mutex->Signal();
-	SLEEP(100);
+	SLEEP(1000);
 	return keep_dispensing;
 }
 
