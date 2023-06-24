@@ -49,7 +49,6 @@ Customer::getAvailPumpId()
             pumpStatusMutex[i]->Signal();
         }
         pumpEnquiryMutex->Signal();
-        SLEEP(1500);
     }
 }
 
@@ -58,6 +57,11 @@ Customer::arriveAtPump()
 {
     
     pumpId = getAvailPumpId();
+
+    pumpDataPool = make_unique<CDataPool>(getName("PumpDataPool", pumpId, ""), sizeof(CustomerRecord));
+    pumpData.reset(static_cast<CustomerRecord*>(pumpDataPool->LinkDataPool()));
+    pumpDpMutex = make_unique<CMutex>(getName("PumpDataPoolMutex", pumpId, ""));
+
     status = CustomerStatus::ArriveAtPump;
 }
 
@@ -79,7 +83,6 @@ Customer::selectFuelGrade()
 {
     data.grade = getRandomFuelGrade();
     //data.grade = FuelGrade::Oct87;
-    //data.grade = FuelGrade::Oct89;
     status = CustomerStatus::SelectFuelGrade;
     
     assert(fuelGradeToInt(data.grade) >= 0 && fuelGradeToInt(data.grade) <= 3);
@@ -93,16 +96,19 @@ void
 Customer::getFuel()
 {
     status = CustomerStatus::WaitForAuth;
-    
+    bool txn_completed = false;
+
     txnApproved[pumpId]->Wait();
     
     status = CustomerStatus::GetFuel;
 
-    bool txn_completed = false;
-
-    // TODO: Consider using CEvent here.
     do {
-        // TODO: Get real time received volume and total cost directly from the GSC rather than from the pump data pool
+        // Get real time received volume and total cost directly from the GSC rather than from the pump data pool
+        pumpDpMutex->Wait();
+        data.receivedVolume = pumpData->receivedVolume;
+        data.cost = pumpData->cost;
+        pumpDpMutex->Signal();
+
         pumpStatusMutex[pumpId]->Wait();
         txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
         pumpStatusMutex[pumpId]->Signal();
@@ -146,7 +152,8 @@ Customer::getRandomName()
         "Grace", "John", "Ivan", "Jane", "Kevin", "Linda",
         "Songzhu", "Tippy", "Mike", "William", "Emma", "Emily",
         "Sophia", "Mia", "Ava", "Andrew", "Songzhu", "Ruby", "John",
-        "Olivia", "Noah", "James", "Isabella", "Carolina"
+        "Olivia", "Tucker", "James", "Isabella", "Carolina", "Dale",
+        "Chad", "Allison", "Chuck"
     };
 
     // Generate a random index
@@ -267,7 +274,7 @@ Customer::getData()
 }
 
 string
-Customer::getStatus()
+Customer::getStatusString()
 {
     return customerStatusToString(status);
 }

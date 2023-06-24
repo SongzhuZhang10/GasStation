@@ -19,8 +19,12 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 
 	txnApproved = make_unique<CEvent>(getName("TxnApprovedByPump", _id, ""));
 
-	// Create a rendezvous object on the heap
-	rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
+	rendezvous = make_unique<CRendezvous>("PumpRendezvous",
+		NUM_PUMPS +
+		// readTank thread of Computer
+		NUM_TANKS +
+		// main function thread of pump facility
+		1);
 
 	// semaphore with initial value 0 and max value 1
 	producer = make_unique<CSemaphore>(getName("PS", _id, ""), 0, 1);

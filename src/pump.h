@@ -19,7 +19,7 @@ private:
 
 	unique_ptr<CustomerRecord> data;
 	unique_ptr<CDataPool> dataPool;
-	// to protect data pointer pointing to the data in the data pool
+	// to protect data pointer pointing to the data in the pump data pool
 	unique_ptr<CMutex> dpMutex;
 
 	unique_ptr<CTypedPipe<CustomerRecord>> pipe;

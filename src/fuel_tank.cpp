@@ -6,7 +6,7 @@ FuelTank::FuelTank(int id)
 {
 	windowMutex = make_unique<CMutex>("PumpScreenMutex");
 
-	mutex = make_unique<CMutex>(getName("FuelTankMutex", _id, ""));
+	mutex = make_unique<CMutex>(getName("FuelTankDataPoolMutex", _id, ""));
 	dataPool = make_unique<CDataPool>(getName("FuelTankDataPool", _id, ""), sizeof(TankData));
 	/*
 	 * The reset() function releases the currently managed pointer (if any) and takes
@@ -43,11 +43,9 @@ FuelTank::checkRemainingVolume()
 void
 FuelTank::refillTank()
 {
-	mutex->Wait();
 	while (increment()) {
 		cout << "Refilling ..." << endl;
 	};
-	mutex->Signal();
 	cout << "Tank " << _id << " has been refilled." << endl;
 }
 
@@ -56,7 +54,7 @@ FuelTank::increment()
 {
 	bool keep_filling = false;
 	mutex->Wait();
-	if (data->remainingVolume + FLOW_RATE < TANK_CAPACITY) {
+	if (data->remainingVolume + FLOW_RATE <= TANK_CAPACITY) {
 		keep_filling = true;
 		data->remainingVolume += FLOW_RATE;
 	}
@@ -70,7 +68,7 @@ FuelTank::decrement()
 {
 	bool keep_dispensing = false;
 	mutex->Wait();
-	if (data->remainingVolume - FLOW_RATE >= FLOW_RATE) {
+	if (data->remainingVolume - FLOW_RATE >= 0) {
 		keep_dispensing = true;
 		data->remainingVolume = data->remainingVolume - FLOW_RATE;
 	}

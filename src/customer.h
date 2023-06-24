@@ -44,6 +44,10 @@ private:
 	// to protect DOS window from being shared by multiple threads at the same time
 	unique_ptr<CMutex> windowMutex;
 	
+	unique_ptr<CustomerRecord> pumpData;
+	unique_ptr<CDataPool> pumpDataPool;
+	// to protect data pointer pointing to the data in the pump data pool
+	unique_ptr<CMutex> pumpDpMutex;
 
 	string getRandomName();
 	string getRandomCreditCardNumber();
@@ -68,7 +72,7 @@ private:
 public:
 	Customer();
 	CustomerRecord& getData();
-	string getStatus();
+	string getStatusString();
 
 };
 

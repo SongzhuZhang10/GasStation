@@ -30,33 +30,46 @@
 #include <optional>
 #include <unordered_map>
 
-constexpr int NUM_TANKS = 4;
-constexpr int NUM_PUMPS = 4;
+const int NUM_TANKS = 4;
+const int NUM_PUMPS = 4;
 
-constexpr int NUM_CUSTOMERS = 8;
+const int NUM_CUSTOMERS = 8;
 
-constexpr float TANK_CAPACITY = 500.0f;
-constexpr float FLOW_RATE = 5.0f;
-
+const float TANK_CAPACITY = 500.0f;
+const float FLOW_RATE = 5.0f;
+const float LOW_FUEL_VOLUME = 200.0f;
 
 constexpr unsigned int TANK_UI_POSITION = 5;
-constexpr unsigned int CMD_POSITION = 10;
-constexpr unsigned int PUMP_STATUS_POSITION = 11;
-constexpr unsigned int CUSTOMER_STATUS_POSITION = 4;
-constexpr unsigned int TXN_LIST_POSITION = 61;
+constexpr unsigned int PUMP_STATUS_POSITION = TANK_UI_POSITION + 6;
+constexpr unsigned int TXN_LIST_POSITION = PUMP_STATUS_POSITION + 50;
 
-//constexpr unsigned int tank_debug_info_position = 40;
+const unsigned int CUSTOMER_STATUS_POSITION = 4;
 
-constexpr unsigned int UI_HEIGHT = 10;
-
-constexpr unsigned int REFRESH_RATE = 2000;
-
-
-
-constexpr unsigned int DEBUG_1 = 140;
-constexpr unsigned int DEBUG_2 = 180;
-
-#define DEBUG_MODE 1
+const unsigned int DEBUG_1 = 140;
+const unsigned int DEBUG_2 = 180;
+/*
+	0 - Black
+	1 - Dark Blue
+	2 - Dark Green
+	3 - Dark Cyan
+	4 - Dark Red
+	5 - Dark Magenta
+	6 - Dark Yellow
+	7 - Grey
+	8 - Black(again)
+	9 - Blue
+	10 - Green
+	11 - Cyan
+	12 - Red
+	13 - Magenta
+	14 - Yellow
+	15 - White
+*/
+const int BLACK = 0;
+const int GREEN = 10;
+const int CYAN = 11;
+const int RED = 12;
+const int WHITE = 15;
 
 // You don't need operator overloading for comparing enum class instances.
 enum class FuelGrade

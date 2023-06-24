@@ -7,17 +7,26 @@
 class Attendent
 {
 private:
-	vector<unique_ptr<CMutex>> mutex;
-	vector<unique_ptr<CDataPool>> dp;
-	vector<unique_ptr<CustomerRecord>> dpData;
+	vector<unique_ptr<CMutex>> pumpMutex;
+	vector<unique_ptr<CDataPool>> pumpDp;
+	vector<unique_ptr<CustomerRecord>> pumpDpData;
+
 	vector<unique_ptr<CEvent>> txnApproved;
 
 	unique_ptr<CTypedPipe<Cmd>> pipe;
 
-	CustomerRecord data[NUM_PUMPS];
+	CustomerRecord pumpData[NUM_PUMPS];
+
+	vector<unique_ptr<CMutex>> tankMutex;
+	vector<unique_ptr<CDataPool>> tankDp;
+	vector<unique_ptr<TankData>> tankDpData;
+
 public:
 	Attendent();
-	bool approveTxn(int id);
+	bool approveTxn(int idx);
 	void printTxns();
+	
+	bool addFuelToTank(int idx);
+	void refillTank(int idx);
 };
 #endif // !__ATTENDENT_H__

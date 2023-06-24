@@ -20,8 +20,8 @@ private:
     // Condition variable and mutexes for synchronization
     std::condition_variable cv;
 
-    // `m` is used to ensure that only one command is processed at a time.
-    std::mutex m, outputMutex;
+    // `commandMutex` is used to ensure that only one command is processed at a time.
+    std::mutex commandMutex, outputMutex;
     bool commandCompleted = true; // No command running at start
 
     unique_ptr<Attendent> attendent;
@@ -30,6 +30,7 @@ public:
     CommandProcessor();
     void openPump(int n);
     void printTxn();
+    void refillTank(int n);
     void run();
 };
 

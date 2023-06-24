@@ -48,15 +48,20 @@ setupPumpFacility()
  ***********************************************/
 
 vector<unique_ptr<Customer>> customers;
-unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous", NUM_PUMPS + 1);
+unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous",
+	NUM_PUMPS +
+	// readTank thread of Computer
+	NUM_TANKS +
+	// main function thread of pump facility
+	1);
 
 UINT __stdcall printCustomers(void* args)
 {
 	windowMutex->Wait();
 	MOVE_CURSOR(0, 0);
-	cout << "--------------------------------------------------------------------------------" << endl;
-	cout << "                           Customer Information                                 " << endl;
-	cout << "--------------------------------------------------------------------------------" << endl;
+	std::cout << "--------------------------------------------------------------------------------" << std::endl;
+	std::cout << "                           Customer Information                                 " << std::endl;
+	std::cout << "--------------------------------------------------------------------------------" << std::endl;
 	fflush(stdout);
 	windowMutex->Signal();
 
@@ -78,42 +83,37 @@ printCustomerRecord(int idx)
 
 	records[idx] = customers[idx]->getData();
 #
-	if (prev_records[idx] == records[idx] && prev_statuses[idx] == customers[idx]->getStatus()) {
+	if (prev_records[idx] == records[idx] && prev_statuses[idx] == customers[idx]->getStatusString()) {
 		return;
 	}
 	else {
 		windowMutex->Wait();
 		MOVE_CURSOR(0, idx * block_height + CUSTOMER_STATUS_POSITION);
-		cout << "---------------------------------------------\n";
-		cout << "Name:                      " << records[idx].name << "                        " << "\n";
-		cout << "Credit Card Number:        " << records[idx].creditCardNumber << "                        " << "\n";
-		cout << "Fuel Grade:                " << fuelGradeToString(records[idx].grade) << "                        " << "\n";
-		cout << "Unit Cost ($/L):           " << records[idx].unitCost << "                        " << "\n";
-		cout << "Requested Volume (L):      " << records[idx].requestedVolume << "                        " << "\n";
-		cout << "Received Volume (L):       " << records[idx].receivedVolume << "                        " << "\n";
-		cout << "Total Cost ($):            " << records[idx].cost << "                        " << "\n";
-		cout << "Status:                    " << customers[idx]->getStatus() << "                        " << "\n";
-		cout << "Pump ID:                   " << records[idx].pumpId << "                        " << "\n";
-		cout << "---------------------------------------------\n";
-		cout << "\n";
+		std::cout << "---------------------------------------------\n";
+		std::cout << "Name:                      " << records[idx].name << "                        " << "\n";
+		std::cout << "Credit Card Number:        " << records[idx].creditCardNumber << "                        " << "\n";
+		std::cout << "Fuel Grade:                " << fuelGradeToString(records[idx].grade) << "                        " << "\n";
+		std::cout << "Unit Cost ($/L):           " << records[idx].unitCost << "                        " << "\n";
+		std::cout << "Requested Volume (L):      " << records[idx].requestedVolume << "                        " << "\n";
+		std::cout << "Received Volume (L):       " << records[idx].receivedVolume << "                        " << "\n";
+		std::cout << "Total Cost ($):            " << records[idx].cost << "                        " << "\n";
+		if (customers[idx]->getStatusString() == "Wait for auth") {
+			TEXT_COLOUR(11);
+		}
+		std::cout << "Status:                    " << customers[idx]->getStatusString() << "                        " << "\n";
+		TEXT_COLOUR();
+		std::cout << "Pump ID:                   " << records[idx].pumpId << "                        " << "\n";
+		std::cout << "---------------------------------------------\n";
+		std::cout << "\n";
 		windowMutex->Signal();
 		prev_records[idx] = records[idx];
-		prev_statuses[idx] = customers[idx]->getStatus();
+		prev_statuses[idx] = customers[idx]->getStatusString();
 	}
 }
 
 void
 runPumpFacility()
 {
-#if 0
-	windowMutex->Wait();
-	MOVE_CURSOR(0, 0);
-	cout << "--------------------------------------------------------------------------------" << endl;
-	cout << "                          Gas Station Fuel Pump Status                          " << endl;
-	cout << "--------------------------------------------------------------------------------" << endl;
-	windowMutex->Signal();
-#endif
-
 	CThread printCustomersThread(printCustomers, ACTIVE, NULL);
 
 	/**

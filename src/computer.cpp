@@ -26,6 +26,12 @@ vector<int> threadIds = { 0, 1, 2, 3 };
 vector<unique_ptr<PumpData>> pumpDataOps;
 vector<unique_ptr<CThread>> readTankThreads;
 
+unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous",
+	NUM_PUMPS +
+	// readTank thread of Computer
+	NUM_TANKS +
+	// main function thread of pump facility
+	1);
 
 /***********************************************
  *                                             *
@@ -74,7 +80,7 @@ void
 setupComputer()
 {
 	for (int i = 0; i < NUM_TANKS; i++) {
-		tankDpMutex.emplace_back(make_unique<CMutex>(getName("FuelTankMutex", i, "")));
+		tankDpMutex.emplace_back(make_unique<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
 		tankDp.emplace_back(make_unique<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
 		tankDpData.emplace_back(static_cast<TankData*>(tankDp[i]->LinkDataPool()));
 		// Make read tank threads active at creation time can avoid UI being garbled.
@@ -257,21 +263,41 @@ readTank(void* args)
 	
 	static const int maxBarLength = 14;
 	static const char barChar = '#';
+	static bool flash_red = false;
+	static bool toggle = true;
+	rendezvous->Wait();
 
 	while (true) {
 		tankDpMutex[tank_id]->Wait();
 		tank_data = *tankDpData[tank_id];
 		tankDpMutex[tank_id]->Signal();
 
-		if (tankReadings[tank_id] != tank_data.remainingVolume) {
+		if (tankReadings[tank_id] != tank_data.remainingVolume || tankReadings[tank_id] < LOW_FUEL_VOLUME) {
 			tankReadings[tank_id] = tank_data.remainingVolume;
 
-			windowMutex->Wait();
-			// Move the cursor to the appropriate location on the screen
-			MOVE_CURSOR(0, TANK_UI_POSITION + tank_id);
+			
 			tankReadingsPercent[tank_id] = tankReadings[tank_id] / TANK_CAPACITY * 100;
 			// Calculate the length of the bar based on the fuel level
 			int bar_length = (int)(tankReadings[tank_id] / TANK_CAPACITY * maxBarLength);
+
+			if (tankReadings[tank_id] < LOW_FUEL_VOLUME) {
+				flash_red = true;
+			}
+			else {
+				flash_red = false;
+			}
+
+			windowMutex->Wait();
+			MOVE_CURSOR(0, TANK_UI_POSITION + tank_id); // Move the cursor to the appropriate location on the screen
+			if (flash_red) {
+				if (toggle) {
+					TEXT_COLOUR(RED);
+				}
+				else {
+					TEXT_COLOUR();
+				}
+				toggle = !toggle;
+			}
 
 			// Draw the bar
 			cout << "Tank " << tank_id << " (" << fuelGradeToString(static_cast<FuelGrade>(tank_data.fuelGrade)) << "): [";
@@ -282,9 +308,11 @@ readTank(void* args)
 				cout << " ";
 			}
 
-			cout << "] " << tankReadingsPercent[tank_id] << "% " << "(" << tankReadings[tank_id] << " Liters)" << endl;
+			cout << "] " << tankReadingsPercent[tank_id] << "% " << "(" << tankReadings[tank_id] << " Liters)          " << endl;
 			fflush(stdout);
+			TEXT_COLOUR();
 			windowMutex->Signal();
+			SLEEP(500);
 		}
 	}
 	return 0;

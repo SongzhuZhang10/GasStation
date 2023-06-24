@@ -5,10 +5,24 @@
 
 CommandProcessor::CommandProcessor()
 {
+    /**
+     * This line adds an entry to the map. The key is the string `"OP"`, and
+     * the value is a lambda function that takes an integer `n` as an argument
+     * and calls the `openPump(n)` method of the current object (`this`).
+     * The [this] in the lambda function's declaration is a capture clause that
+     * allows the lambda function to access the current object's member functions
+     * and variables. The lambda function can then be used just like any other
+     * function and passed as an argument to std::thread to run in a new thread.
+     */
     command_map_int["OP"] = [this](int n) { this->openPump(n); };
-    command_map_void["PT"] = [this]() { this->printTxn(); };
 
+
+    command_map_int["RF"] = [this](int n) { this->refillTank(n); };
+
+    command_map_void["PT"] = [this]() { this->printTxn(); };
+   
     commands_with_int.insert("OP");
+    commands_with_int.insert("RF");
 
     attendent = make_unique<Attendent>();
 }
@@ -18,25 +32,47 @@ void CommandProcessor::openPump(int n)
     {
         std::lock_guard<std::mutex> lock(outputMutex); // Lock acquired
         // Critical section
-        attendent->approveTxn(n);
-        // Access and manipulate shared resources
         std::cout << "Opening pump " << n << " ..." << std::endl;
+        attendent->approveTxn(n); // execute a command
     } // Lock released here
 
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<std::mutex> lock(commandMutex);
     commandCompleted = true;
+
+    /**
+     * This line notifies one thread that is waiting on the condition variable cv.
+     * This is part of the coordination between the main thread and the worker threads.
+     * When a worker thread finishes executing a command, it sets `commandCompleted` to
+     * true and calls cv.notify_one() to wake up the main thread, which is waiting for
+     * `commandCompleted` to become true.
+     */
     cv.notify_one();
 }
 
 void CommandProcessor::printTxn()
 {
     {
+        // TODO: How does this work?
         std::lock_guard<std::mutex> lock(outputMutex);
-        attendent->printTxns();
         std::cout << "Printing transaction ..." << std::endl;
+        attendent->printTxns();
+        
     }
 
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<std::mutex> lock(commandMutex);
+    commandCompleted = true;
+    cv.notify_one();
+}
+
+void CommandProcessor::refillTank(int n)
+{
+    {
+        std::lock_guard<std::mutex> lock(outputMutex);
+        std::cout << "Refilling the tank ..." << std::endl;
+        attendent->refillTank(n);
+    }
+
+    std::lock_guard<std::mutex> lock(commandMutex);
     commandCompleted = true;
     cv.notify_one();
 }
@@ -47,8 +83,16 @@ void CommandProcessor::run()
         std::string input, command;
         int number = 0;
 
-        // Wait for the previous command to complete
-        std::unique_lock<std::mutex> lock(m);
+        /**
+         * `lock` is an instance (a variable) of `std::unique_lock<std::mutex>`.
+         * This lock automatically locks the mutex `commandMutex` when it is created
+         * and unlocks it when it is destroyed. This is an example of RAII
+         * (Resource Acquisition Is Initialization), a common idiom in C++ where resource
+         * management (like locking and unlocking a mutex) is tied to the lifetime of an object..
+         * Here, the `lock` is protecting the `commandCompleted` variable. Only one thread can
+         * lock the mutex at a time.
+         */
+        std::unique_lock<std::mutex> lock(commandMutex); // Wait for the previous command to complete
 
         /**
          * Make the main thread wait until commandCompleted becomes true.
@@ -56,10 +100,23 @@ void CommandProcessor::run()
          * that allows the lambda function to access all in-scope variables
          * by reference. In this case, it allows the lambda function to access
          * `commandCompleted`.
+         * The cv.wait() function takes a unique lock and a predicate as
+         * arguments, and it blocks the current thread until the condition
+         * variable cv is notified.
+         * Here, `lock` is the mutex that's being locked and unlocked around
+         * the condition variable cv.
+         * The `wait` function takes two arguments:
+         *  1. The unique lock (`lock`) which must be locked by the current thread.
+         *     This is required to ensure safe access to shared data.
+         *  2. A lambda function `([&] { return commandCompleted; })` that represents
+         *     the condition to be satisfied via the `cv` variable. This condition is
+         *     checked each time the wait function is signaled. The thread will only
+         *     proceed if the condition is satisfied; otherwise, it will go back to waiting.
          */
         cv.wait(lock, [&] { return commandCompleted; });
 
         commandCompleted = false; // Set to false before starting next command
+
         lock.unlock(); // This allows other threads to lock the mutex.
 
         {
@@ -83,6 +140,27 @@ void CommandProcessor::run()
          * length of the substring. In this case, it starts from index 0 and takes 2 characters.
          */
         command = input.substr(0, 2);
+        
+        /**
+         * Achieve case-insensitive command comparison by converting the command entered by the
+         * user to uppercase before processing it.
+         * This function applies `::toupper` to each character in the `command` string from
+         * beginning to end, storing the result in command from the beginning, effectively
+         * converting the entire string to uppercase.
+         */
+        std::transform(
+            command.begin(),    // iterator that denotes the beginning of the string
+            command.end(),      // iterator that denotes the end of the string
+            // Overwrite the original characters in the string with their uppercase counterparts,
+            // starting at the beginning of the `command` string
+            command.begin(),    // iterator that tells this funciton where to store the result.
+            /**
+             * `::toupper` is a function that converts a given character to uppercase if it is a
+             * lowercase letter; or, it returns the original character.
+             * The double colon (`::`) is the scope resolution operator. It is used here because
+             * `toupper` is in the global scope (not in a namespace or class).
+             */
+            ::toupper);
 
         // Check if the command exists in our command map
         if (commands_with_int.find(command) != commands_with_int.end()) {
@@ -118,7 +196,7 @@ void CommandProcessor::run()
             }
 
             if (number < 0 || number > 3) {
-                std::cout << "Please enter a number that is in the range of 0 to " << NUM_PUMPS << ".\n";
+                std::cout << "Please enter a number that is in the range of 0 to " << NUM_PUMPS - 1 << ".\n";
                 commandCompleted = true;
                 continue;
             }
