@@ -7,19 +7,17 @@
 class Attendent
 {
 private:
-	vector<unique_ptr<CMutex>> pumpMutex;
-	vector<unique_ptr<CDataPool>> pumpDp;
-	vector<unique_ptr<CustomerRecord>> pumpDpData;
+	vector<shared_ptr<CMutex>> pumpMutex;
+	vector<shared_ptr<CustomerRecord>> pumpDpData;
 
-	vector<unique_ptr<CEvent>> txnApproved;
+	vector<shared_ptr<CEvent>> txnApprovedEvent;
 
-	unique_ptr<CTypedPipe<Cmd>> pipe;
+	shared_ptr<CTypedPipe<Cmd>> pipe;
 
 	CustomerRecord pumpData[NUM_PUMPS];
 
-	vector<unique_ptr<CMutex>> tankMutex;
-	vector<unique_ptr<CDataPool>> tankDp;
-	vector<unique_ptr<TankData>> tankDpData;
+	vector<shared_ptr<CMutex>> tankMutex;
+	vector<shared_ptr<TankData>> tankDpData;
 
 public:
 	Attendent();

@@ -1,5 +1,7 @@
 #include "common.h"
 
+SharedResources sharedResources;
+
 std::string
 getName(const std::string& prefix, unsigned int id, const std::string& suffix)
 {

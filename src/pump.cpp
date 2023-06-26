@@ -1,35 +1,27 @@
 #include "pump.h"
 #include <iomanip>
 
-Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
-	:	_id(id),
-		tanks_(tanks)
+Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
 {
-	windowMutex = make_unique<CMutex>("PumpScreenMutex");
+	windowMutex = sharedResources.getPumpWindowMutex();
 
 	// for Customer objects
 	// pipe size is set to 1 so that one customer is serviced at a time.
-	pipe = make_unique<CTypedPipe<CustomerRecord>>(getName("Pipe", _id, ""), 1);
-	pipeMutex = make_unique<CMutex>(getName("PipeMutex", _id, ""));
+	pipe = sharedResources.getPumpPipe(id_);
+	pipeMutex = sharedResources.getPumpPipeMutex(id_);
 	
-	
-	dataPool = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
-	data.reset(static_cast<CustomerRecord*>(dataPool->LinkDataPool()));
-	dpMutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
+	data = sharedResources.getPumpDpDataPtr(id_);
 
-	txnApproved = make_unique<CEvent>(getName("TxnApprovedByPump", _id, ""));
+	dpMutex = sharedResources.getPumpDpDataMutex(id_);
 
-	rendezvous = make_unique<CRendezvous>("PumpRendezvous",
-		NUM_PUMPS +
-		// readTank thread of Computer
-		NUM_TANKS +
-		// main function thread of pump facility
-		1);
+	txnApprovedEvent = sharedResources.getTxnApprovedEvent(id_);
+
+	rndv = sharedResources.getRndv();
 
 	// semaphore with initial value 0 and max value 1
-	producer = make_unique<CSemaphore>(getName("PS", _id, ""), 0, 1);
+	producer = sharedResources.getProducer(id_);
 	// semaphore with initial value 1 and max value 1
-	consumer = make_unique<CSemaphore>(getName("CS", _id, ""), 1, 1);
+	consumer = sharedResources.getConsumer(id_);
 
 	/*
 	 * 1. Do not forget to initialize the value pointed by the pointer `data`. Or, the data pointed
@@ -47,15 +39,14 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks)
 		dpMutex->Wait();
 		*data = customer;
 		dpMutex->Signal();
-	} while (data->name != customer.name || data->creditCardNumber != customer.creditCardNumber);
+	} while (*data != customer);
 	assert(customer.txnStatus == TxnStatus::Pending);
 	
 
 
 	// Used to identify the idle pump
-	flagDataPool = make_unique<CDataPool>(getName("PumpBusyFlagDataPool", _id, ""), sizeof(PumpStatus));
-	pumpStatus.reset(static_cast<PumpStatus*>(flagDataPool->LinkDataPool()));
-	pumpStatusMutex = make_unique<CMutex>(getName("PumpStatusMutex", _id, ""));
+	pumpStatus = sharedResources.getPumpStatus(id_);
+	pumpStatusMutex = sharedResources.getPumpStatusMutex(id_);
 
 	pumpStatusMutex->Wait();
 	// Must initialize the values pointed by the pointer in the constructor.
@@ -116,7 +107,8 @@ Pump::sendTransactionInfo()
 FuelTank&
 Pump::getTank(int id)
 {
-	/* If you don't want to transfer the object's ownership, you should return a raw pointer
+	/**
+	 * If you don't want to transfer the object's ownership, you should return a raw pointer
 	 * or a reference, not a smart pointer.
 	 */
 	return *(tanks_[id]);
@@ -133,7 +125,7 @@ Pump::getFuel()
 
 	if (customer.txnStatus == TxnStatus::Approved) {
 		if (chosen_tank.readVolume() >= customer.requestedVolume) {
-			txnApproved->Signal();
+			txnApprovedEvent->Signal();
 			do {
 				if (chosen_tank.decrement()) {
 					customer.receivedVolume += FLOW_RATE;
@@ -155,9 +147,8 @@ Pump::getFuel()
 	}
 
 	customer.txnStatus = TxnStatus::Done;
-	sendTransactionInfo();
+	sendTransactionInfo(); // This is to ensure TxnStatus::Done is sent successfully to the computer.
 
-	//sendTransactionInfo(); // This is to ensure TxnStatus::Done is sent successfully to the computer.
 	pumpStatusMutex->Wait();
 	// Inform the completion of the transaction to the customer
 	pumpStatus->isTransactionCompleted = true;
@@ -189,8 +180,7 @@ Pump::readPipe()
 	/* BUG: The creditCardNumber value of customer is empty when it's printed out.
 	 * This is why `data->creditCardNumber = customer.creditCardNumber;` later on can cause
 	 * the memcpy exception.
-	*/
-	//assert(customer.txnStatus == TxnStatus::Pending);
+	 */
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG before reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
@@ -215,7 +205,7 @@ Pump::waitForAuth()
 {
 	assert(customer.txnStatus == TxnStatus::Pending);
 
-	txnApproved->Wait();
+	txnApprovedEvent->Wait();
 
 	dpMutex->Wait();
 	assert(data->txnStatus == TxnStatus::Approved);
@@ -227,7 +217,7 @@ Pump::waitForAuth()
 int
 Pump::getId()
 {
-	return _id;
+	return id_;
 }
 
 void
@@ -236,7 +226,7 @@ Pump::rendezvousOnce()
 	static bool has_run = false;
 
 	if (!has_run) {
-		rendezvous->Wait();
+		rndv->Wait();
 		has_run = true;
 	}
 }

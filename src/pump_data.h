@@ -8,20 +8,19 @@
 class PumpData
 {
 private:
-	int _id;
+	int id_;
 
 	// No need to initialize this variable because it is
 	// initialized by its contructor when it is declared.
 	CustomerRecord data;
 	CustomerRecord prev_data;
 
-	unique_ptr<CMutex> mutex;
-	unique_ptr<CMutex> windowMutex;
+	shared_ptr<CMutex> mutex;
+	shared_ptr<CMutex> windowMutex;
 
-	unique_ptr<CDataPool> dp;
-	unique_ptr<CustomerRecord> dpData;
+	shared_ptr<CustomerRecord> dpData;
 
-	unique_ptr<CSemaphore> producer, consumer;
+	shared_ptr<CSemaphore> producer, consumer;
 
 public:
 	PumpData(int id);

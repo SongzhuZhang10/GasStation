@@ -10,36 +10,34 @@
 class Pump : public ActiveClass 
 {
 private:
-	int _id;
+	int id_;
 	string name;
 	FuelPrice price;
-	//float dispsensedFuel;
-	unique_ptr<CDataPool> flagDataPool;
-	unique_ptr<PumpStatus> pumpStatus;
 
-	unique_ptr<CustomerRecord> data;
-	unique_ptr<CDataPool> dataPool;
+	shared_ptr<PumpStatus> pumpStatus;
+
+	shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool
-	unique_ptr<CMutex> dpMutex;
+	shared_ptr<CMutex> dpMutex;
 
-	unique_ptr<CTypedPipe<CustomerRecord>> pipe;
-	unique_ptr<CMutex> pipeMutex;
+	shared_ptr<CTypedPipe<CustomerRecord>> pipe;
+	shared_ptr<CMutex> pipeMutex;
 
 	// to protect `pumpStatus` resource
-	unique_ptr<CMutex> pumpStatusMutex;
+	shared_ptr<CMutex> pumpStatusMutex;
 
 	// to protect DOS window from being shared by multiple threads at the same time
-	unique_ptr<CMutex> windowMutex;
+	shared_ptr<CMutex> windowMutex;
 
 	CustomerRecord customer;
 
 	vector<unique_ptr<FuelTank>>& tanks_;
 
-	unique_ptr<CEvent> txnApproved;
+	shared_ptr<CEvent> txnApprovedEvent;
 
-	unique_ptr<CRendezvous> rendezvous;
+	shared_ptr<CRendezvous> rndv;
 
-	unique_ptr<CSemaphore> producer, consumer;
+	shared_ptr<CSemaphore> producer, consumer;
 
 	// To create a class thread out of this function, the return value type must be `int`.
 	void readPipe();

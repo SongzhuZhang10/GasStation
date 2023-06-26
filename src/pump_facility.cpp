@@ -1,6 +1,6 @@
 #include "pump_facility.h"
 
-/*
+/**
  * Plan: incorperate the four tanks inside the pump facility which is the top level.
  * The pump facality also includes the four pumps.
  * So, the main function of this project is the pump facility, which means the PumpFacility class is not needed.
@@ -12,7 +12,7 @@
  *                                             *
  ***********************************************/
 vector<unique_ptr<FuelTank>> tanks;
-unique_ptr<CMutex> windowMutex = make_unique<CMutex>("PumpScreenMutex");
+shared_ptr<CMutex> windowMutex = sharedResources.getPumpWindowMutex();
 
 void
 setupTanks()
@@ -48,12 +48,7 @@ setupPumpFacility()
  ***********************************************/
 
 vector<unique_ptr<Customer>> customers;
-unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous",
-	NUM_PUMPS +
-	// readTank thread of Computer
-	NUM_TANKS +
-	// main function thread of pump facility
-	1);
+shared_ptr<CRendezvous> rndv = sharedResources.getRndv();
 
 UINT __stdcall printCustomers(void* args)
 {
@@ -122,7 +117,7 @@ runPumpFacility()
 	 * write pipes while pumpDataOps are not ready to read the pipe, which can lead to inexplicable outputs
 	 * (e.g., eight customers are waiting for auth at the same time at the beginning).
 	 */
-	rendezvous->Wait();
+	rndv->Wait();
 
 	for (int i = 0; i < NUM_CUSTOMERS; i++) {
 		customers.emplace_back(make_unique<Customer>());

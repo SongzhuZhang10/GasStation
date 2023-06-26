@@ -10,28 +10,22 @@ list<CustomerRecord> txnList;
 unique_ptr<CMutex> txnListMutex;
 TxnListPrinter txnPrinter(txnList);
 
-vector<unique_ptr<CDataPool>> tankDp;
-vector<unique_ptr<TankData>> tankDpData;
-vector<unique_ptr<CMutex>> tankDpMutex;
+vector<shared_ptr<TankData>> tankDpData;
+vector<shared_ptr<CMutex>> tankDpMutex;
 
-unique_ptr<CMutex> windowMutex = make_unique<CMutex>("ComputerWindowMutex");
+shared_ptr<CMutex> windowMutex = sharedResources.getComputerWindowMutex();
 
 vector<float> tankReadingsPercent(NUM_TANKS, 0.0f);
 vector<float> tankReadings(NUM_TANKS, 0.0f);
 
-unique_ptr<CTypedPipe<Cmd>> attendentPipe;
+shared_ptr<CTypedPipe<Cmd>> attendentPipe;
 
 vector<unique_ptr<CThread>> readPumpThreads;
 vector<int> threadIds = { 0, 1, 2, 3 };
 vector<unique_ptr<PumpData>> pumpDataOps;
 vector<unique_ptr<CThread>> readTankThreads;
 
-unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous",
-	NUM_PUMPS +
-	// readTank thread of Computer
-	NUM_TANKS +
-	// main function thread of pump facility
-	1);
+shared_ptr<CRendezvous> rndv = sharedResources.getRndv();
 
 /***********************************************
  *                                             *
@@ -40,8 +34,8 @@ unique_ptr<CRendezvous> rendezvous = make_unique<CRendezvous>("PumpRendezvous",
  ***********************************************/
 
 vector<unique_ptr<CThread>> transactionThreads;
-unique_ptr<CTypedPipe<CustomerRecord>> customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
-unique_ptr<CMutex> customerPipeMutex = make_unique<CMutex>("CustomerPipeMutex");
+shared_ptr<CTypedPipe<CustomerRecord>> customerPipe = sharedResources.getCustomerPipe();
+shared_ptr<CMutex> customerPipeMutex = sharedResources.getCustomerPipeMutex();
 
 TxnListPrinter::TxnListPrinter(list<CustomerRecord>& lst) : lst(&lst)
 {
@@ -80,9 +74,8 @@ void
 setupComputer()
 {
 	for (int i = 0; i < NUM_TANKS; i++) {
-		tankDpMutex.emplace_back(make_unique<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
-		tankDp.emplace_back(make_unique<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
-		tankDpData.emplace_back(static_cast<TankData*>(tankDp[i]->LinkDataPool()));
+		tankDpMutex = sharedResources.getTankDpDataMutexVec();
+		tankDpData = sharedResources.getTankDpDataVec();
 		// Make read tank threads active at creation time can avoid UI being garbled.
 		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
 	}
@@ -93,9 +86,7 @@ setupComputer()
 	}
 
 	txnListMutex = make_unique<CMutex>("TransactionListMutex");
-	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
-	attendentPipe = make_unique<CTypedPipe<Cmd>>("AttendentPipe", 1);
-	customerPipe = make_unique<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
+	attendentPipe = sharedResources.getAttendentPipe();
 
 	windowMutex->Wait();
 	MOVE_CURSOR(0, 0);
@@ -103,8 +94,6 @@ setupComputer()
 	cout << "                           Gas Station Computer (GSC)                           " << endl;
 	cout << "--------------------------------------------------------------------------------" << endl;
 	windowMutex->Signal();
-
-	
 }
 
 void exitComputer()
@@ -140,7 +129,6 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 {
 	windowMutex->Wait();
 	MOVE_CURSOR(0, position);
-	//cout << "update count: " << ++j << endl;
 	cout << "--------------- Pump " << record.pumpId << " Transaction " << txn_id  << " --------------- \n";
 	/*
 	* For some reason, there are some residual characters on the DOS window that were printed from previous calls
@@ -148,7 +136,7 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 	* (e.g., waitoved, N/A 85, etc.).
 	* To resolve this problem, we can print use empty string " " to overwrite those residual characters.
 	*/
-	if (record.name == "Unknown") {
+	if (record.name == "___Unknown___") {
 		cout << "Name:                      " << "N/A             " << "\n";
 		cout << "Credit Card Number:        " << "N/A             " << "\n";
 		cout << "Fuel Grade:                " << "N/A             " << "\n";
@@ -207,7 +195,6 @@ readPump(void* args)
 
 		pumpDataOps[id]->printPumpData();
 
-		//SLEEP(REFRESH_RATE);
 	}
 	return 0;
 }
@@ -265,7 +252,7 @@ readTank(void* args)
 	static const char barChar = '#';
 	static bool flash_red = false;
 	static bool toggle = true;
-	rendezvous->Wait();
+	rndv->Wait();
 
 	while (true) {
 		tankDpMutex[tank_id]->Wait();

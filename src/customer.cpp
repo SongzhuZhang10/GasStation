@@ -9,18 +9,13 @@ constexpr int MAX_LITERS = 70;
 */
 Customer::Customer() : pumpId(-1)
 {
-    windowMutex = make_unique<CMutex>("PumpScreenMutex");
-
-    for (int i = 0; i < NUM_PUMPS; i++) {
-        pipe.emplace_back(make_unique<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
-        pipeMutex.emplace_back(make_unique<CMutex>(getName("PipeMutex", i, "")));
-        pumpFlagDataPool.emplace_back(make_unique<CDataPool>(getName("PumpBusyFlagDataPool", i, ""), sizeof(PumpStatus)));
-        pumpStatusMutex.emplace_back(make_unique<CMutex>(getName("PumpStatusMutex", i, "")));
-        txnApproved.emplace_back(make_unique<CEvent>(getName("TxnApprovedByPump", i, "")));
-    }
-    for (int i = 0; i < NUM_PUMPS; i++) {
-        pumpStatuses.emplace_back(static_cast<PumpStatus*>(pumpFlagDataPool[i]->LinkDataPool()));
-    }
+    windowMutex = sharedResources.getPumpWindowMutex();
+    pipe = sharedResources.getPumpPipeVec();
+    pipeMutex = sharedResources.getPumpPipeMutexVec();
+    pumpFlagDataPool = sharedResources.getPumpFlagDataPoolVec();
+    pumpStatusMutex = sharedResources.getPumpStatusMutexVec();
+    txnApprovedEvent = sharedResources.getTxnApprovedEventVec();
+    pumpStatuses = sharedResources.getPumpStatusVec();
 
     data.name = getRandomName();
     data.requestedVolume = getRandomFloat(MIN_LITERS, MAX_LITERS);
@@ -58,9 +53,8 @@ Customer::arriveAtPump()
     
     pumpId = getAvailPumpId();
 
-    pumpDataPool = make_unique<CDataPool>(getName("PumpDataPool", pumpId, ""), sizeof(CustomerRecord));
-    pumpData.reset(static_cast<CustomerRecord*>(pumpDataPool->LinkDataPool()));
-    pumpDpMutex = make_unique<CMutex>(getName("PumpDataPoolMutex", pumpId, ""));
+    pumpData = sharedResources.getPumpDpDataPtr(pumpId);
+    pumpDpMutex = sharedResources.getPumpDpDataMutex(pumpId);
 
     status = CustomerStatus::ArriveAtPump;
 }
@@ -98,7 +92,7 @@ Customer::getFuel()
     status = CustomerStatus::WaitForAuth;
     bool txn_completed = false;
 
-    txnApproved[pumpId]->Wait();
+    txnApprovedEvent[pumpId]->Wait();
     
     status = CustomerStatus::GetFuel;
 

@@ -18,12 +18,11 @@
 class FuelTank
 {
 private:
-	/** The object that owns this object. */
-	unique_ptr<CDataPool> dataPool;
-	unique_ptr<TankData> data;
-	unique_ptr<CMutex> mutex;
-	unique_ptr<CMutex> windowMutex;
-	int _id;
+	shared_ptr<TankData> data;
+	shared_ptr<CMutex> mutex;
+	shared_ptr<CMutex> windowMutex;
+
+	int id_;
 	FuelGrade fuelGrade;
 
 

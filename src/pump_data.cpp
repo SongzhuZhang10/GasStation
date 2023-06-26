@@ -1,22 +1,18 @@
 #include "pump_data.h"
 
-PumpData::PumpData(int id) : _id(id)
+PumpData::PumpData(int id) : id_(id)
 {
-	windowMutex = make_unique<CMutex>("ComputerWindowMutex");
+	windowMutex = sharedResources.getComputerWindowMutex();
 
-	dp = make_unique<CDataPool>(getName("PumpDataPool", _id, ""), sizeof(CustomerRecord));
 	// Must use the reset function to avoid the error E0349 `no operator "=" matches these operands 
-	dpData.reset(static_cast<CustomerRecord*>(dp->LinkDataPool()));
+	dpData = sharedResources.getPumpDpDataPtr(id_);
 
-	// TODO: This mutex may be used for customers to directly get real time data from computer directly.
-	mutex = make_unique<CMutex>(getName("PumpDataPoolMutex", _id, ""));
+	// This mutex is used for customers to directly get real time data from computer directly.
+	mutex = sharedResources.getPumpDpDataMutex(id_);
 	assert(data.txnStatus == TxnStatus::Pending && prev_data.txnStatus == TxnStatus::Pending);
 
-	// semaphore with initial value 0 and max value 1
-	producer = make_unique<CSemaphore>(getName("PS", _id, ""), 0, 1);
-	// semaphore with initial value 1 and max value 1
-	consumer = make_unique<CSemaphore>(getName("CS", _id, ""), 1, 1);
-
+	producer = sharedResources.getProducer(id_);
+	consumer = sharedResources.getConsumer(id_);
 }
 
 void
@@ -87,15 +83,15 @@ void
 PumpData::printPumpStatus(const CustomerRecord& record) const
 {
 	windowMutex->Wait();
-	MOVE_CURSOR(0, PUMP_STATUS_POSITION + _id * 12);
-	cout << "--------------- Pump " << _id << " Status ---------------\n";
+	MOVE_CURSOR(0, PUMP_STATUS_POSITION + id_ * 12);
+	cout << "--------------- Pump " << id_ << " Status ---------------\n";
 	/*
 	 * For some reason, there are some residual characters on the DOS window that were printed from previous calls
 	 * of this function, leanding to some puzzling characters printed in the furture calls of this function
 	 * (e.g., waitoved, N/A 85, etc.).
 	 * To resolve this problem, we can print use empty string " " to overwrite those residual characters.
 	 */
-	if (record.name == "Unknown") {
+	if (record.name == "___Unknown___") {
 		cout << "Name:                      " << "N/A             " << "\n";
 		cout << "Credit Card Number:        " << "N/A             " << "\n";
 		cout << "Fuel Grade:                " << "N/A             " << "\n";
@@ -119,5 +115,5 @@ PumpData::printPumpStatus(const CustomerRecord& record) const
 	cout << "\n";
 	fflush(stdout);
 	windowMutex->Signal();
-	SLEEP(1500);
+	SLEEP(500);
 }

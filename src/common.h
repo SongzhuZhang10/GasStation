@@ -39,14 +39,12 @@ const float TANK_CAPACITY = 500.0f;
 const float FLOW_RATE = 5.0f;
 const float LOW_FUEL_VOLUME = 200.0f;
 
-constexpr unsigned int TANK_UI_POSITION = 5;
-constexpr unsigned int PUMP_STATUS_POSITION = TANK_UI_POSITION + 6;
-constexpr unsigned int TXN_LIST_POSITION = PUMP_STATUS_POSITION + 50;
+constexpr int TANK_UI_POSITION = 5;
+constexpr int PUMP_STATUS_POSITION = TANK_UI_POSITION + 6;
+constexpr int TXN_LIST_POSITION = PUMP_STATUS_POSITION + 50;
 
-const unsigned int CUSTOMER_STATUS_POSITION = 4;
+const int CUSTOMER_STATUS_POSITION = 4;
 
-const unsigned int DEBUG_1 = 140;
-const unsigned int DEBUG_2 = 180;
 /*
 	0 - Black
 	1 - Dark Blue
@@ -128,7 +126,7 @@ struct CustomerRecord
 	{
 		// so far, the number of characters in any string cannot exceed 15. Or, the program fails.
 		creditCardNumber = "0000 0000 0000";
-		name = "Unknown";
+		name = "___Unknown___";
 	}
 
 	void resetToDefault()
@@ -142,7 +140,7 @@ struct CustomerRecord
 		txnStatus = TxnStatus::Pending;
 
 		creditCardNumber = "0000 0000 0000";
-		name = "Unknown";
+		name = "___Unknown___";
 	}
 
 	// overload the `operator==` to provide a more natural way to compare two instances of the struct.
@@ -190,9 +188,11 @@ struct PumpStatus
 		
 };
 
-
-
-
+/***********************************************
+ *                                             *
+ *           Function Prototypes               *
+ *                                             *
+ ***********************************************/
 std::string getName(const std::string& prefix, unsigned int id, const std::string& suffix);
 
 std::string fuelGradeToString(FuelGrade grade);
@@ -214,5 +214,131 @@ void waitForKeys(char first_key, char second_key);
 std::string txnStatusToString(TxnStatus status);
 
 std::string waitForCmd();
+
+template<typename T, typename... Args>
+void createAndAdd(std::vector<std::shared_ptr<T>>& vec, Args&&... args) {
+	vec.emplace_back(std::make_shared<T>(std::forward<Args>(args)...));
+}
+
+
+class SharedResources
+{
+private:
+	shared_ptr<CMutex> pumpWindowMutex;
+	shared_ptr<CMutex> computerWindowMutex;
+	shared_ptr<CMutex> customerPipeMutex;
+	vector<shared_ptr<CMutex>> pumpPipeMutexes; // TODO: This may not be necessary!
+
+	shared_ptr<CTypedPipe<CustomerRecord>> customerPipe;
+	shared_ptr<CTypedPipe<Cmd>> attendentPipe;
+	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pumpPipes;
+
+	shared_ptr<CRendezvous> rndv;
+	vector<shared_ptr<CEvent>> txnApprovedEvents;
+
+	vector<shared_ptr<CDataPool>> tankDps;
+	vector<shared_ptr<TankData>> tankDpDataPtrs;
+	vector<shared_ptr<CMutex>> tankDpDataMutexes;
+
+	vector<shared_ptr<CDataPool>> pumpDps;
+	vector<shared_ptr<CustomerRecord>> pumpDpDataPtrs;
+	vector<shared_ptr<CMutex>> pumpDpDataMutexes;
+
+	vector<shared_ptr<CSemaphore>> producers, consumers;
+
+	vector<shared_ptr<CDataPool>> flagDataPools;
+	vector<shared_ptr<PumpStatus>> pumpStatuses;
+	vector<shared_ptr<CMutex>> pumpStatusMutexes;
+
+public:
+	SharedResources() {
+		pumpWindowMutex = make_shared<CMutex>("PumpScreenMutex");
+		computerWindowMutex = make_shared<CMutex>("ComputerWindowMutex");
+		customerPipeMutex = make_shared<CMutex>("CustomerPipeMutex");
+		rndv = make_shared<CRendezvous>("PumpRendezvous",
+										NUM_PUMPS +
+										// readTank threads of Computer
+										NUM_TANKS +
+										// main function thread of pump facility
+										1);
+		customerPipe = make_shared<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
+		attendentPipe = make_shared<CTypedPipe<Cmd>>("AttendentPipe", 1);
+		
+		
+
+		for (int i = 0; i < NUM_TANKS; i++) {
+			tankDpDataMutexes.emplace_back(make_shared<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
+			tankDps.emplace_back(make_shared<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
+			tankDpDataPtrs.emplace_back(static_cast<TankData*>(tankDps[i]->LinkDataPool()));
+		}
+
+		for (int i = 0; i < NUM_PUMPS; i++) {
+			pumpDpDataMutexes.emplace_back(make_shared<CMutex>(getName("PumpDataPoolMutex", i, "")));
+			pumpDps.emplace_back(make_shared<CDataPool>(getName("PumpDataPool", i, ""), sizeof(CustomerRecord)));
+			pumpDpDataPtrs.emplace_back(static_cast<CustomerRecord*>(pumpDps[i]->LinkDataPool()));
+
+			// semaphore with initial value 0 and max value 1
+			producers.emplace_back(make_shared<CSemaphore>(getName("PS", i, ""), 0, 1));
+			// semaphore with initial value 1 and max value 1
+			consumers.emplace_back(make_shared<CSemaphore>(getName("CS", i, ""), 1, 1));
+
+			pumpPipes.emplace_back(make_shared<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
+			pumpPipeMutexes.emplace_back(make_shared<CMutex>(getName("PipeMutex", i, "")));
+
+			txnApprovedEvents.emplace_back(make_shared<CEvent>(getName("TxnApprovedByPump", i, "")));
+
+			flagDataPools.emplace_back(make_shared<CDataPool>(getName("PumpBusyFlagDataPool", i, ""), sizeof(PumpStatus)));
+			pumpStatuses.emplace_back(static_cast<PumpStatus*>(flagDataPools[i]->LinkDataPool()));
+			pumpStatusMutexes.emplace_back(make_shared<CMutex>(getName("PumpStatusMutex", i, "")));
+		}
+	}
+
+	auto getTankDpDataVec() const { return tankDpDataPtrs; }
+	auto getTankDpDataMutexVec() const { return tankDpDataMutexes; }
+	auto getPumpPipeVec() const { return pumpPipes; }
+	auto getPumpPipeMutexVec() const { return pumpPipeMutexes; }
+	auto getPumpFlagDataPoolVec() const { return flagDataPools; }
+	auto getPumpStatusMutexVec() const { return pumpStatusMutexes; }
+	auto getTxnApprovedEventVec() const { return txnApprovedEvents; }
+	auto getPumpStatusVec() const { return pumpStatuses; }
+	auto getPumpDataPooMutexlVec() const { return pumpDpDataMutexes; }
+	auto getPumpDpDataPtrVec() const { return pumpDpDataPtrs; }
+
+	/**
+	 * In the context of multithreaded programming, returning by value (i.e., making a copy) ensures that
+	 * the shared_ptr and the object it owns will remain valid for the caller, even if other threads are
+	 * concurrently decreasing the reference count and might potentially delete the object.
+	 * 
+	 * Remove redundant const for return by value: For primitive types and pointers, const in the return
+	 * type doesn't prevent modification of the copied value in the calling code, so it can be removed.
+	 */
+	shared_ptr<TankData> getTankDpDataPtr(int n) const { return tankDpDataPtrs[n]; }
+
+	shared_ptr<CMutex> getTankDpMutex(int n) const { return tankDpDataMutexes[n]; }
+	shared_ptr<CMutex> getPumpWindowMutex() const { return pumpWindowMutex; }
+	shared_ptr<CMutex> getComputerWindowMutex() const { return computerWindowMutex; }
+	shared_ptr<CMutex> getCustomerPipeMutex() const { return customerPipeMutex; }
+
+	
+	shared_ptr<CRendezvous> getRndv() const { return rndv; }
+	shared_ptr<CTypedPipe<CustomerRecord>> getCustomerPipe() const { return customerPipe; }
+	shared_ptr<CTypedPipe<Cmd>> getAttendentPipe() const { return attendentPipe; }
+
+	shared_ptr<CMutex> getPumpDpDataMutex(int n) const { return pumpDpDataMutexes[n]; }
+	shared_ptr<CustomerRecord> getPumpDpDataPtr(int n) const { return pumpDpDataPtrs[n]; }
+
+	shared_ptr<CSemaphore> getProducer(int n) const { return producers[n]; }
+	shared_ptr<CSemaphore> getConsumer(int n) const { return consumers[n]; }
+
+	shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
+	shared_ptr<CMutex> getPumpPipeMutex(int n) const { return pumpPipeMutexes[n]; }
+
+	shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
+
+	shared_ptr<PumpStatus> getPumpStatus(int n) const { return pumpStatuses[n]; }
+	shared_ptr<CMutex> getPumpStatusMutex(int n) const { return pumpStatusMutexes[n]; }
+};
+
+extern SharedResources sharedResources;
 
 #endif // !__COMMON_H__

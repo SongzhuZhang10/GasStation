@@ -2,22 +2,21 @@
 #include "common.h"
 
 FuelTank::FuelTank(int id)
-	:	_id(id)
+	:	id_(id)
 {
-	windowMutex = make_unique<CMutex>("PumpScreenMutex");
-
-	mutex = make_unique<CMutex>(getName("FuelTankDataPoolMutex", _id, ""));
-	dataPool = make_unique<CDataPool>(getName("FuelTankDataPool", _id, ""), sizeof(TankData));
-	/*
+	windowMutex = sharedResources.getPumpWindowMutex();
+	mutex = sharedResources.getTankDpMutex(id_);
+	/**
+	 * data.reset(static_cast<TankData*>(dataPool->LinkDataPool()));
 	 * The reset() function releases the currently managed pointer (if any) and takes
 	 * ownership of the new pointer. If you call reset() with a null pointer, the unique_ptr
 	 * becomes empty and releases its ownership of any previously managed pointer.
 	 */
-	data.reset(static_cast<TankData*>(dataPool->LinkDataPool()));
+	data = sharedResources.getTankDpDataPtr(id_);
 
 	data->remainingVolume = TANK_CAPACITY; // All tanks are initially full.
-	data->fuelGrade = intToFuelGrade(_id);
-	fuelGrade = intToFuelGrade(_id);
+	data->fuelGrade = intToFuelGrade(id_);
+	fuelGrade = intToFuelGrade(id_);
 }
 
 float
@@ -46,7 +45,7 @@ FuelTank::refillTank()
 	while (increment()) {
 		cout << "Refilling ..." << endl;
 	};
-	cout << "Tank " << _id << " has been refilled." << endl;
+	cout << "Tank " << id_ << " has been refilled." << endl;
 }
 
 bool

@@ -758,10 +758,10 @@ CRendezvous::CRendezvous(const string& TheRendezvousName, int NumberThreads) : R
 	if (strcmp(ptr->Initialised, "Initialised") != 0)	// if not initialised
 	{
 		strcpy_s(ptr->Initialised, "Initialised");							// initialise it
-		ptr->NumberWaiting = NumberThreads;					// set number of threads waiting to rendezvous
+		ptr->NumberWaiting = NumberThreads;					// set number of threads waiting to rndv
 		ptr->NumThreads = NumberThreads;
 	}
-	else								// check the number is the same as previous initialisation of this rendezvous
+	else								// check the number is the same as previous initialisation of this rndv
 		PERR(NumberThreads == ptr->NumThreads, string("Rendezvous '") + RendezvousName + string("' Already Created with a Different Number of Clients"));
 
 	RendezvousMutex->Signal();

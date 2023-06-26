@@ -2,19 +2,14 @@
 
 Attendent::Attendent()
 {
-	for (int i = 0; i < NUM_PUMPS; i++) {
-		pumpMutex.emplace_back(make_unique<CMutex>(getName("PumpDataPoolMutex", i, "")));
-		pumpDp.emplace_back(make_unique<CDataPool>(getName("PumpDataPool", i, ""), sizeof(CustomerRecord)));
-		pumpDpData.emplace_back(static_cast<CustomerRecord*>(pumpDp[i]->LinkDataPool()));
-		txnApproved.emplace_back(make_unique<CEvent>(getName("TxnApprovedByPump", i, "")));
-	}
+	pumpMutex = sharedResources.getPumpDataPooMutexlVec();
+	pumpDpData = sharedResources.getPumpDpDataPtrVec();
+	txnApprovedEvent = sharedResources.getTxnApprovedEventVec();
 
-	for (int i = 0; i < NUM_TANKS; i++) {
-		tankMutex.emplace_back(make_unique<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
-		tankDp.emplace_back(make_unique<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
-		tankDpData.emplace_back(static_cast<TankData*>(tankDp[i]->LinkDataPool()));
-	}
-	pipe = make_unique<CTypedPipe<Cmd>>("AttendentPipe", 1);
+	tankMutex = sharedResources.getTankDpDataMutexVec();
+	tankDpData = sharedResources.getTankDpDataVec();
+
+	pipe = sharedResources.getAttendentPipe();
 }
 
 bool
@@ -24,14 +19,14 @@ Attendent::approveTxn(int idx)
 	pumpData[idx] = *pumpDpData[idx];
 	pumpMutex[idx]->Signal();
 
-	if (pumpData[idx].txnStatus == TxnStatus::Pending && pumpData[idx].name != "Unknown") {
+	if (pumpData[idx].txnStatus == TxnStatus::Pending && pumpData[idx].name != "___Unknown___") {
 		
 		pumpMutex[idx]->Wait();
 		pumpDpData[idx]->txnStatus = TxnStatus::Approved;
 		assert(pumpDpData[idx]->txnStatus == TxnStatus::Approved);
 		pumpMutex[idx]->Signal();
 		
-		txnApproved[idx]->Signal(); // Trigger the event in `waitForAuth` in `pump.cpp`
+		txnApprovedEvent[idx]->Signal(); // Trigger the event in `waitForAuth` in `pump.cpp`
 
 		return true;
 	}

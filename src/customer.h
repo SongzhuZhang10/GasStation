@@ -32,22 +32,22 @@ private:
 
 	FuelPrice price;
 
-	vector<unique_ptr<CMutex>> pumpStatusMutex;
+	vector<shared_ptr<CMutex>> pumpStatusMutex;
 
-	vector<unique_ptr<CEvent>> txnApproved;
-	vector<unique_ptr<CDataPool>> pumpFlagDataPool;
-	vector<unique_ptr<PumpStatus>> pumpStatuses;
+	vector<shared_ptr<CEvent>> txnApprovedEvent;
+	vector<shared_ptr<CDataPool>> pumpFlagDataPool;
+	vector<shared_ptr<PumpStatus>> pumpStatuses;
 
-	vector<unique_ptr<CTypedPipe<CustomerRecord>>> pipe;
-	vector<unique_ptr<CMutex>> pipeMutex;
+	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
+	vector<shared_ptr<CMutex>> pipeMutex;
 
 	// to protect DOS window from being shared by multiple threads at the same time
-	unique_ptr<CMutex> windowMutex;
+	shared_ptr<CMutex> windowMutex;
 	
-	unique_ptr<CustomerRecord> pumpData;
-	unique_ptr<CDataPool> pumpDataPool;
+	shared_ptr<CustomerRecord> pumpData;
+	shared_ptr<CDataPool> pumpDataPool;
 	// to protect data pointer pointing to the data in the pump data pool
-	unique_ptr<CMutex> pumpDpMutex;
+	shared_ptr<CMutex> pumpDpMutex;
 
 	string getRandomName();
 	string getRandomCreditCardNumber();

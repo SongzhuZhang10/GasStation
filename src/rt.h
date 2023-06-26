@@ -1570,8 +1570,8 @@ class CRendezvous
 	string		RendezvousName;
 
 	struct RendezvousData {
-		int		NumberWaiting;		// number of threads waiting to rendezvous
-		int		NumThreads;		// number of threads involved in rendezvous, set in the constructor
+		int		NumberWaiting;		// number of threads waiting to rndv
+		int		NumThreads;		// number of threads involved in rndv, set in the constructor
 		char	Initialised[12];
 	} *ptr;
 
