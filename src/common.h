@@ -113,12 +113,6 @@ struct CustomerRecord
 	int pumpId;
 	TxnStatus txnStatus;
 
-	// Because transaction being completed does not mean the pump is released by
-	// the current customer and is ready to be used by the next customer and vice versa,
-	// we need two bool flags.
-	bool isTransactionCompleted;
-	bool busy;
-
 	// Default member initializer
 	CustomerRecord() :
 		// default value of creditCardNumber cannot exceeds 4-digits in string format.
@@ -129,9 +123,7 @@ struct CustomerRecord
 		unitCost(0.0f),
 		cost(0.0f),
 		pumpId(-1),
-		txnStatus(TxnStatus::Pending),
-		busy(false),
-		isTransactionCompleted(true) // indicating the previous transaction was completed
+		txnStatus(TxnStatus::Pending)
 	{
 		// so far, the number of characters in any string cannot exceed 15. Or, the program fails.
 		creditCardNumber = "0000 0000 0000";
@@ -150,9 +142,6 @@ struct CustomerRecord
 
 		creditCardNumber = "0000 0000 0000";
 		name = "___Unknown___";
-
-		busy = false;
-		isTransactionCompleted = true;
 	}
 
 	// overload the `operator==` to provide a more natural way to compare two instances of the struct.
@@ -183,7 +172,7 @@ struct CustomerRecord
 				pumpId != other.pumpId ||
 				txnStatus != other.txnStatus;
 	}
-	
+#if 0
 	// Overloading assignment operator
 	CustomerRecord& operator=(const CustomerRecord& other)
 	{
@@ -202,6 +191,7 @@ struct CustomerRecord
 		}
 		return *this;
 	}
+#endif
 };
 
 /***********************************************

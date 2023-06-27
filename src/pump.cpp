@@ -1,7 +1,7 @@
 #include "pump.h"
 #include <iomanip>
 
-Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
+Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks), busy(false)
 {
 	windowMutex = sharedResources.getPumpWindowMutex();
 
@@ -38,18 +38,9 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
 
 		*data = customer;
 
-		// The assignment operator is overloaded.
-		// Thus, the following two members need seperate explicit assignment operations.
-		data->busy = false; // Must initialize the values pointed by the pointer in the constructor.
-		data->isTransactionCompleted = true;
-
 		dpMutex->Signal();
 	} while (*data != customer);
 	assert(customer.txnStatus == TxnStatus::Pending);
-
-	assert(data->busy == false);
-	assert(data->isTransactionCompleted == true);
-
 }
 
 void
@@ -78,7 +69,6 @@ Pump::getTank(int id)
 void
 Pump::getFuel()
 {
-	assert(data->isTransactionCompleted == false);
 	int tank_id = fuelGradeToInt(customer.grade);
 	// It's best to use a local temp variable here rather than a private variable of the class.
 	FuelTank& chosen_tank = getTank(tank_id);
@@ -114,14 +104,13 @@ Pump::getFuel()
 void
 Pump::resetPump()
 {
-	data->isTransactionCompleted = true;
-	assert(data->busy == true);
-	assert(data->isTransactionCompleted == true);
+
+	assert(busy == true);
 	customer.resetToDefault();
 
 	sendTransactionInfo();
 
-	data->busy = false; // notify the customer the transaction is done.
+	busy = false; // notify the customer the transaction is done.
 }
 void
 Pump::readPipe()
@@ -147,8 +136,6 @@ Pump::readPipe()
 
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG after reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
-
-	data->isTransactionCompleted = false;
 
 	assert(customer.txnStatus == TxnStatus::Pending);
 }
@@ -182,6 +169,18 @@ Pump::rendezvousOnce()
 		rndv->Wait();
 		has_run = true;
 	}
+}
+
+void
+Pump::setBusy()
+{
+	busy = true;
+}
+
+bool
+Pump::isBusy()
+{
+	return busy;
 }
 
 int

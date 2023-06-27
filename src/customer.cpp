@@ -7,7 +7,7 @@ constexpr int MAX_LITERS = 70;
 /*
 * Receive fuel should not happen after returning the pump hose. Need to fix this.
 */
-Customer::Customer() : pumpId(-1)
+Customer::Customer(vector<unique_ptr<Pump>>& pumps) : pumpId(-1), pumps_(pumps)
 {
     windowMutex = sharedResources.getPumpWindowMutex();
     pipe = sharedResources.getPumpPipeVec();
@@ -30,12 +30,12 @@ Customer::getAvailPumpId()
     while (true) {
         pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
-            if (!pumpDataVec[i]->busy) {
+            if ( !pumps_[i]->isBusy() ) {
                 // Own the pump so that it cannot be shared by others
-                pumpDataVec[i]->busy = true;
+                pumps_[i]->setBusy();
                 data.pumpId = i;
                 pumpEnquiryMutex->Signal();
-                assert(pumpDataVec[i]->busy == true);
+                assert(pumps_[i]->isBusy() == true);
                 return i;
             }
         }
@@ -96,16 +96,14 @@ Customer::getFuel()
         data.receivedVolume = pumpDataVec[pumpId]->receivedVolume;
         data.cost = pumpDataVec[pumpId]->cost;
         pumpDpMutex->Signal();
-
-        txn_completed = pumpDataVec[pumpId]->isTransactionCompleted;
-    } while (!txn_completed);
+    } while (data.receivedVolume < data.requestedVolume);
 }
 
 void
 Customer::writePipe(CustomerRecord* customer)
 {
     assert(pumpId != -1);
-    assert(pumpDataVec[pumpId]->busy == true);
+    assert(pumps_[pumpId]->isBusy() == true);
     assert(pipe[pumpId]->TestForData() == 0);
     
     /**

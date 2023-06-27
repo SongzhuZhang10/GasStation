@@ -11,10 +11,9 @@ class Pump : public ActiveClass
 {
 private:
 	int id_;
+	bool busy;
 	string name;
 	FuelPrice price;
-
-	//shared_ptr<PumpStatus> pumpStatus;
 
 	shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool
@@ -45,8 +44,11 @@ private:
 	int main();
 	
 	FuelTank& getTank(int id);
+
 public:
 	Pump(int id, vector<unique_ptr<FuelTank>>& tanks);
+	void setBusy();
+	bool isBusy();
 	int getId();
 };
 #endif // __PUMP_H__

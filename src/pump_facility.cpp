@@ -120,7 +120,7 @@ runPumpFacility()
 	rndv->Wait();
 
 	for (int i = 0; i < NUM_CUSTOMERS; i++) {
-		customers.emplace_back(make_unique<Customer>());
+		customers.emplace_back(make_unique<Customer>(pumps));
 		customers[i]->Resume();
 	}
 

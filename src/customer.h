@@ -4,6 +4,7 @@
 #include "rt.h"
 #include "common.h"
 #include "fuel_price.h"
+#include "pump.h"
 #include <random>
 
 class Customer : public ActiveClass {
@@ -24,7 +25,7 @@ private:
 
 	CustomerStatus status;
 
-	int pumpId; // TODO: MAY NOT BE NECESSARY!
+	int pumpId;
 
 	unique_ptr<CMutex> pumpEnquiryMutex;
 
@@ -33,6 +34,8 @@ private:
 	FuelPrice price;
 
 	vector<shared_ptr<CEvent>> txnApprovedEvent;
+
+	vector<unique_ptr<Pump>>& pumps_;
 
 	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
 
@@ -65,7 +68,7 @@ private:
 	int main(void); 
 
 public:
-	Customer();
+	Customer(vector<unique_ptr<Pump>>& pumps);
 	CustomerRecord& getData();
 	string getStatusString();
 
