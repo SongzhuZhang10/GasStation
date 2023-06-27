@@ -14,7 +14,7 @@ private:
 	string name;
 	FuelPrice price;
 
-	shared_ptr<PumpStatus> pumpStatus;
+	//shared_ptr<PumpStatus> pumpStatus;
 
 	shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool

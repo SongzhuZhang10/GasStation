@@ -1,8 +1,7 @@
 #include "fuel_tank.h"
 #include "common.h"
 
-FuelTank::FuelTank(int id)
-	:	id_(id)
+FuelTank::FuelTank(int id) : id_(id)
 {
 	windowMutex = sharedResources.getPumpWindowMutex();
 	mutex = sharedResources.getTankDpMutex(id_);

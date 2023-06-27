@@ -112,6 +112,13 @@ struct CustomerRecord
 	float cost;
 	int pumpId;
 	TxnStatus txnStatus;
+
+	// Because transaction being completed does not mean the pump is released by
+	// the current customer and is ready to be used by the next customer and vice versa,
+	// we need two bool flags.
+	bool isTransactionCompleted;
+	bool busy;
+
 	// Default member initializer
 	CustomerRecord() :
 		// default value of creditCardNumber cannot exceeds 4-digits in string format.
@@ -122,7 +129,9 @@ struct CustomerRecord
 		unitCost(0.0f),
 		cost(0.0f),
 		pumpId(-1),
-		txnStatus(TxnStatus::Pending)
+		txnStatus(TxnStatus::Pending),
+		busy(false),
+		isTransactionCompleted(true) // indicating the previous transaction was completed
 	{
 		// so far, the number of characters in any string cannot exceed 15. Or, the program fails.
 		creditCardNumber = "0000 0000 0000";
@@ -141,6 +150,9 @@ struct CustomerRecord
 
 		creditCardNumber = "0000 0000 0000";
 		name = "___Unknown___";
+
+		busy = false;
+		isTransactionCompleted = true;
 	}
 
 	// overload the `operator==` to provide a more natural way to compare two instances of the struct.
@@ -171,21 +183,25 @@ struct CustomerRecord
 				pumpId != other.pumpId ||
 				txnStatus != other.txnStatus;
 	}
-};
-
-
-struct PumpStatus
-{
-	// Because transaction being completed does not mean the pump is released by
-	// the current customer and is ready to be used by the next customer and vice versa, we need
-	// two bool flags.
-	bool isTransactionCompleted;
-	bool busy;
-	PumpStatus() :
-		busy(false),
-		isTransactionCompleted(true) // indicating the previous transaction was completed
-		{} 
-		
+	
+	// Overloading assignment operator
+	CustomerRecord& operator=(const CustomerRecord& other)
+	{
+		// Check for self-assignment
+		if (this != &other) {
+			// Deep copy
+			name = other.name;
+			creditCardNumber = other.creditCardNumber;
+			grade = other.grade;
+			requestedVolume = other.requestedVolume;
+			receivedVolume = other.receivedVolume;
+			unitCost = other.unitCost;
+			cost = other.cost;
+			pumpId = other.pumpId;
+			txnStatus = other.txnStatus;
+		}
+		return *this;
+	}
 };
 
 /***********************************************
@@ -241,9 +257,6 @@ private:
 
 	vector<shared_ptr<CSemaphore>> producers, consumers;
 
-	vector<shared_ptr<CDataPool>> flagDataPools;
-	vector<shared_ptr<PumpStatus>> pumpStatuses;
-
 public:
 	SharedResources() {
 		pumpWindowMutex = make_shared<CMutex>("PumpScreenMutex");
@@ -277,18 +290,13 @@ public:
 			pumpPipes.emplace_back(make_shared<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
 
 			txnApprovedEvents.emplace_back(make_shared<CEvent>(getName("TxnApprovedByPump", i, "")));
-
-			flagDataPools.emplace_back(make_shared<CDataPool>(getName("PumpBusyFlagDataPool", i, ""), sizeof(PumpStatus)));
-			pumpStatuses.emplace_back(static_cast<PumpStatus*>(flagDataPools[i]->LinkDataPool()));
 		}
 	}
 
 	auto getTankDpDataVec() const { return tankDpDataPtrs; }
 	auto getTankDpDataMutexVec() const { return tankDpDataMutexes; }
 	auto getPumpPipeVec() const { return pumpPipes; }
-	auto getPumpFlagDataPoolVec() const { return flagDataPools; }
 	auto getTxnApprovedEventVec() const { return txnApprovedEvents; }
-	auto getPumpStatusVec() const { return pumpStatuses; }
 	auto getPumpDataPooMutexlVec() const { return pumpDpDataMutexes; }
 	auto getPumpDpDataPtrVec() const { return pumpDpDataPtrs; }
 
@@ -319,8 +327,6 @@ public:
 	shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
 
 	shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
-
-	shared_ptr<PumpStatus> getPumpStatus(int n) const { return pumpStatuses[n]; }
 };
 
 extern SharedResources sharedResources;

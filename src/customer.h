@@ -24,7 +24,7 @@ private:
 
 	CustomerStatus status;
 
-	int pumpId;
+	int pumpId; // TODO: MAY NOT BE NECESSARY!
 
 	unique_ptr<CMutex> pumpEnquiryMutex;
 
@@ -33,16 +33,14 @@ private:
 	FuelPrice price;
 
 	vector<shared_ptr<CEvent>> txnApprovedEvent;
-	vector<shared_ptr<CDataPool>> pumpFlagDataPool;
-	vector<shared_ptr<PumpStatus>> pumpStatuses;
 
 	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
 
 	// to protect DOS window from being shared by multiple threads at the same time
 	shared_ptr<CMutex> windowMutex;
 	
-	shared_ptr<CustomerRecord> pumpData;
-	shared_ptr<CDataPool> pumpDataPool;
+	vector<shared_ptr<CustomerRecord>> pumpDataVec;
+
 	// to protect data pointer pointing to the data in the pump data pool
 	shared_ptr<CMutex> pumpDpMutex;
 

@@ -11,10 +11,10 @@ Customer::Customer() : pumpId(-1)
 {
     windowMutex = sharedResources.getPumpWindowMutex();
     pipe = sharedResources.getPumpPipeVec();
-    pumpFlagDataPool = sharedResources.getPumpFlagDataPoolVec();
     txnApprovedEvent = sharedResources.getTxnApprovedEventVec();
-    pumpStatuses = sharedResources.getPumpStatusVec();
 
+    pumpDataVec = sharedResources.getPumpDpDataPtrVec();
+    
     data.name = getRandomName();
     data.requestedVolume = getRandomFloat(MIN_LITERS, MAX_LITERS);
     data.txnStatus = TxnStatus::Pending;
@@ -30,25 +30,25 @@ Customer::getAvailPumpId()
     while (true) {
         pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
-            if (!pumpStatuses[i]->busy) {
+            if (!pumpDataVec[i]->busy) {
                 // Own the pump so that it cannot be shared by others
-                pumpStatuses[i]->busy = true;
+                pumpDataVec[i]->busy = true;
                 data.pumpId = i;
                 pumpEnquiryMutex->Signal();
+                assert(pumpDataVec[i]->busy == true);
                 return i;
             }
         }
         pumpEnquiryMutex->Signal();
     }
+
 }
 
 void
 Customer::arriveAtPump()
 {
-    
     pumpId = getAvailPumpId();
 
-    pumpData = sharedResources.getPumpDpDataPtr(pumpId);
     pumpDpMutex = sharedResources.getPumpDpDataMutex(pumpId);
 
     status = CustomerStatus::ArriveAtPump;
@@ -71,7 +71,7 @@ void
 Customer::selectFuelGrade()
 {
     data.grade = getRandomFuelGrade();
-    //data.grade = FuelGrade::Oct87;
+
     status = CustomerStatus::SelectFuelGrade;
     
     assert(fuelGradeToInt(data.grade) >= 0 && fuelGradeToInt(data.grade) <= 3);
@@ -92,13 +92,12 @@ Customer::getFuel()
     status = CustomerStatus::GetFuel;
 
     do {
-        // Get real time received volume and total cost directly from the GSC rather than from the pump data pool
         pumpDpMutex->Wait();
-        data.receivedVolume = pumpData->receivedVolume;
-        data.cost = pumpData->cost;
+        data.receivedVolume = pumpDataVec[pumpId]->receivedVolume;
+        data.cost = pumpDataVec[pumpId]->cost;
         pumpDpMutex->Signal();
 
-        txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
+        txn_completed = pumpDataVec[pumpId]->isTransactionCompleted;
     } while (!txn_completed);
 }
 
@@ -106,6 +105,9 @@ void
 Customer::writePipe(CustomerRecord* customer)
 {
     assert(pumpId != -1);
+    assert(pumpDataVec[pumpId]->busy == true);
+    assert(pipe[pumpId]->TestForData() == 0);
+    
     /**
      * There might be multiple customers trying to write to the same pipe.
      * So, use mutex here. If the lock-unlock pump mechanism works perfectly,

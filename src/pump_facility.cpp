@@ -124,7 +124,6 @@ runPumpFacility()
 		customers[i]->Resume();
 	}
 
-	
 	printCustomersThread.WaitForThread();
 	cout << "Press Enter to terminate the Customer process." << endl;
 	waitForKeyPress();
