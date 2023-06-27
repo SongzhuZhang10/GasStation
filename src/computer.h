@@ -18,7 +18,6 @@ void writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr);
 
 UINT __stdcall readTank(void* args);
 UINT __stdcall printTxnHistory(void* args);
-UINT __stdcall recordTxn(void* args);
 UINT __stdcall readPump(void* args);
 
 class TxnListPrinter

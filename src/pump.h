@@ -21,10 +21,6 @@ private:
 	shared_ptr<CMutex> dpMutex;
 
 	shared_ptr<CTypedPipe<CustomerRecord>> pipe;
-	shared_ptr<CMutex> pipeMutex;
-
-	// to protect `pumpStatus` resource
-	shared_ptr<CMutex> pumpStatusMutex;
 
 	// to protect DOS window from being shared by multiple threads at the same time
 	shared_ptr<CMutex> windowMutex;

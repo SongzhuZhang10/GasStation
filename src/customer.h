@@ -32,14 +32,11 @@ private:
 
 	FuelPrice price;
 
-	vector<shared_ptr<CMutex>> pumpStatusMutex;
-
 	vector<shared_ptr<CEvent>> txnApprovedEvent;
 	vector<shared_ptr<CDataPool>> pumpFlagDataPool;
 	vector<shared_ptr<PumpStatus>> pumpStatuses;
 
 	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
-	vector<shared_ptr<CMutex>> pipeMutex;
 
 	// to protect DOS window from being shared by multiple threads at the same time
 	shared_ptr<CMutex> windowMutex;

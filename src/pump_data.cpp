@@ -29,15 +29,7 @@ PumpData::readData()
 	consumer->Signal();
 	
 }
-#if 0
-void
-PumpData::writeData()
-{
-	mutex->Wait();
-	*dpData = data;
-	mutex->Signal();
-}
-#endif
+
 void
 PumpData::archiveData()
 {

@@ -27,7 +27,6 @@ public:
 	void printPumpData();
 	void printPumpStatus(const CustomerRecord& record) const;
 	void readData();
-	void writeData();
 	void archiveData();
 	CustomerRecord getData() const;
 };

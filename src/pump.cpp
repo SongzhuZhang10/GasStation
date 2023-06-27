@@ -8,7 +8,6 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
 	// for Customer objects
 	// pipe size is set to 1 so that one customer is serviced at a time.
 	pipe = sharedResources.getPumpPipe(id_);
-	pipeMutex = sharedResources.getPumpPipeMutex(id_);
 	
 	data = sharedResources.getPumpDpDataPtr(id_);
 
@@ -35,24 +34,18 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
 	  an exception in the memcpy.asm file will be induced.
 	 */
 	do {
-		assert(customer.txnStatus == TxnStatus::Pending);
 		dpMutex->Wait();
 		*data = customer;
 		dpMutex->Signal();
 	} while (*data != customer);
 	assert(customer.txnStatus == TxnStatus::Pending);
 	
-
-
 	// Used to identify the idle pump
 	pumpStatus = sharedResources.getPumpStatus(id_);
-	pumpStatusMutex = sharedResources.getPumpStatusMutex(id_);
 
-	pumpStatusMutex->Wait();
 	// Must initialize the values pointed by the pointer in the constructor.
 	pumpStatus->busy = false;
 	pumpStatus->isTransactionCompleted = true;
-	pumpStatusMutex->Signal();
 
 }
 
@@ -149,10 +142,8 @@ Pump::getFuel()
 	customer.txnStatus = TxnStatus::Done;
 	sendTransactionInfo(); // This is to ensure TxnStatus::Done is sent successfully to the computer.
 
-	pumpStatusMutex->Wait();
 	// Inform the completion of the transaction to the customer
 	pumpStatus->isTransactionCompleted = true;
-	pumpStatusMutex->Signal();
 }
 
 void
@@ -163,9 +154,7 @@ Pump::resetPump()
 
 	sendTransactionInfo();
 
-	pumpStatusMutex->Wait();
 	pumpStatus->busy = false; // notify the customer the transaction is done.
-	pumpStatusMutex->Signal();
 }
 void
 Pump::readPipe()
@@ -192,10 +181,7 @@ Pump::readPipe()
 	if (customer.txnStatus != TxnStatus::Pending)
 		cout << "DEBUG after reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
-
-	pumpStatusMutex->Wait();
 	pumpStatus->isTransactionCompleted = false;
-	pumpStatusMutex->Signal();
 
 	assert(customer.txnStatus == TxnStatus::Pending);
 }

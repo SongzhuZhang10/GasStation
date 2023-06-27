@@ -7,7 +7,8 @@
  */
 
 list<CustomerRecord> txnList;
-unique_ptr<CMutex> txnListMutex;
+
+unique_ptr<CMutex> txnListMutex = make_unique<CMutex>("TransactionListMutex");
 TxnListPrinter txnPrinter(txnList);
 
 vector<shared_ptr<TankData>> tankDpData;
@@ -34,13 +35,8 @@ shared_ptr<CRendezvous> rndv = sharedResources.getRndv();
  ***********************************************/
 
 vector<unique_ptr<CThread>> transactionThreads;
-shared_ptr<CTypedPipe<CustomerRecord>> customerPipe = sharedResources.getCustomerPipe();
-shared_ptr<CMutex> customerPipeMutex = sharedResources.getCustomerPipeMutex();
 
-TxnListPrinter::TxnListPrinter(list<CustomerRecord>& lst) : lst(&lst)
-{
-	mutex = make_unique<CMutex>("TransactionListMutex");
-}
+TxnListPrinter::TxnListPrinter(list<CustomerRecord>& lst) : lst(&lst) {}
 
 void
 TxnListPrinter::printNew()
@@ -49,7 +45,6 @@ TxnListPrinter::printNew()
 	static size_t last_size = 0;
 	const int offset = 11;
 	
-	//mutex->Wait();
 	txnListMutex->Wait();
 	if (lst->size() == 0)
 		cout << "Cannot print txn because list size is 0." << endl;
@@ -66,7 +61,6 @@ TxnListPrinter::printNew()
 
 		last_size = lst->size();
 	}
-	//mutex->Signal();
 	txnListMutex->Signal();
 }
 
@@ -85,7 +79,6 @@ setupComputer()
 		readPumpThreads.emplace_back(make_unique<CThread>(readPump, ACTIVE, &threadIds[i]));
 	}
 
-	txnListMutex = make_unique<CMutex>("TransactionListMutex");
 	attendentPipe = sharedResources.getAttendentPipe();
 
 	windowMutex->Wait();
@@ -107,21 +100,6 @@ void exitComputer()
 	for (const auto& t : readPumpThreads) {
 		t->WaitForThread();
 	}
-}
-
-UINT __stdcall
-recordTxn(void* args)
-{
-	CustomerRecord txn;
-	while (true) {
-		customerPipe->Read(&txn);
-
-		txnListMutex->Wait();
-		txnList.push_back(txn);
-		txnListMutex->Signal();
-		
-	}
-	return 0;
 }
 
 void
@@ -159,7 +137,6 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 	}
 	cout << "----------------------------------------------------\n";
 	cout << "\n";
-	fflush(stdout);
 	windowMutex->Signal();
 }
 
@@ -173,9 +150,9 @@ writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr)
 		txn.txnStatus = TxnStatus::Archived;
 		pump_data_ptr->archiveData();
 
-		customerPipeMutex->Wait();
-		customerPipe->Write(&txn);
-		customerPipeMutex->Signal();
+		txnListMutex->Wait();
+		txnList.push_back(txn);
+		txnListMutex->Signal();
 	}
 }
 
@@ -215,12 +192,9 @@ printTxnHistory(void* args)
 		attendentPipe->Read(&cmd);
 
 		if (cmd == Cmd::PrintTxn) {
-			//cout << "Print txn command received!" << endl;
 			txnPrinter.printNew();
 			
 		}
-
-		SLEEP(5000);
 	}
 	return 0;
 }

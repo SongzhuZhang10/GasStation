@@ -14,11 +14,8 @@ int main(void) {
 	 * after them!
 	 */
 	CThread printTxnHistoryThread(printTxnHistory, ACTIVE, NULL);
-	CThread recordTxnThread(recordTxn, ACTIVE, NULL);
-
 	
 	printTxnHistoryThread.WaitForThread();
-	recordTxnThread.WaitForThread();
 
 	exitComputer();
 

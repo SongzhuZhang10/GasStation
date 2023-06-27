@@ -11,9 +11,7 @@ Customer::Customer() : pumpId(-1)
 {
     windowMutex = sharedResources.getPumpWindowMutex();
     pipe = sharedResources.getPumpPipeVec();
-    pipeMutex = sharedResources.getPumpPipeMutexVec();
     pumpFlagDataPool = sharedResources.getPumpFlagDataPoolVec();
-    pumpStatusMutex = sharedResources.getPumpStatusMutexVec();
     txnApprovedEvent = sharedResources.getTxnApprovedEventVec();
     pumpStatuses = sharedResources.getPumpStatusVec();
 
@@ -32,16 +30,13 @@ Customer::getAvailPumpId()
     while (true) {
         pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
-            pumpStatusMutex[i]->Wait();
             if (!pumpStatuses[i]->busy) {
                 // Own the pump so that it cannot be shared by others
                 pumpStatuses[i]->busy = true;
-                pumpStatusMutex[i]->Signal();
                 data.pumpId = i;
                 pumpEnquiryMutex->Signal();
                 return i;
             }
-            pumpStatusMutex[i]->Signal();
         }
         pumpEnquiryMutex->Signal();
     }
@@ -103,9 +98,7 @@ Customer::getFuel()
         data.cost = pumpData->cost;
         pumpDpMutex->Signal();
 
-        pumpStatusMutex[pumpId]->Wait();
         txn_completed = pumpStatuses[pumpId]->isTransactionCompleted;
-        pumpStatusMutex[pumpId]->Signal();
     } while (!txn_completed);
 }
 
@@ -118,11 +111,8 @@ Customer::writePipe(CustomerRecord* customer)
      * So, use mutex here. If the lock-unlock pump mechanism works perfectly,
      * then it may not be necessary to mutex here. Verify the mutex is truly necessary later on.
      */
-    pipeMutex[pumpId]->Wait();
 
     pipe[pumpId]->Write(customer);
-
-    pipeMutex[pumpId]->Signal();
 }
 
 void

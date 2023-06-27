@@ -205,8 +205,6 @@ void waitForKeyPress();
 
 void resizeToFit(std::string& destination, const std::string& source);
 
-//void printPumpData(CustomerRecord& record, unique_ptr<CMutex>& window_mutex, int id);
-
 char digitToChar(int num);
 
 void waitForKeys(char first_key, char second_key);
@@ -226,10 +224,7 @@ class SharedResources
 private:
 	shared_ptr<CMutex> pumpWindowMutex;
 	shared_ptr<CMutex> computerWindowMutex;
-	shared_ptr<CMutex> customerPipeMutex;
-	vector<shared_ptr<CMutex>> pumpPipeMutexes; // TODO: This may not be necessary!
 
-	shared_ptr<CTypedPipe<CustomerRecord>> customerPipe;
 	shared_ptr<CTypedPipe<Cmd>> attendentPipe;
 	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pumpPipes;
 
@@ -248,20 +243,17 @@ private:
 
 	vector<shared_ptr<CDataPool>> flagDataPools;
 	vector<shared_ptr<PumpStatus>> pumpStatuses;
-	vector<shared_ptr<CMutex>> pumpStatusMutexes;
 
 public:
 	SharedResources() {
 		pumpWindowMutex = make_shared<CMutex>("PumpScreenMutex");
 		computerWindowMutex = make_shared<CMutex>("ComputerWindowMutex");
-		customerPipeMutex = make_shared<CMutex>("CustomerPipeMutex");
 		rndv = make_shared<CRendezvous>("PumpRendezvous",
 										NUM_PUMPS +
 										// readTank threads of Computer
 										NUM_TANKS +
 										// main function thread of pump facility
 										1);
-		customerPipe = make_shared<CTypedPipe<CustomerRecord>>("CustomerPipe", 1);
 		attendentPipe = make_shared<CTypedPipe<Cmd>>("AttendentPipe", 1);
 		
 		
@@ -283,22 +275,18 @@ public:
 			consumers.emplace_back(make_shared<CSemaphore>(getName("CS", i, ""), 1, 1));
 
 			pumpPipes.emplace_back(make_shared<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
-			pumpPipeMutexes.emplace_back(make_shared<CMutex>(getName("PipeMutex", i, "")));
 
 			txnApprovedEvents.emplace_back(make_shared<CEvent>(getName("TxnApprovedByPump", i, "")));
 
 			flagDataPools.emplace_back(make_shared<CDataPool>(getName("PumpBusyFlagDataPool", i, ""), sizeof(PumpStatus)));
 			pumpStatuses.emplace_back(static_cast<PumpStatus*>(flagDataPools[i]->LinkDataPool()));
-			pumpStatusMutexes.emplace_back(make_shared<CMutex>(getName("PumpStatusMutex", i, "")));
 		}
 	}
 
 	auto getTankDpDataVec() const { return tankDpDataPtrs; }
 	auto getTankDpDataMutexVec() const { return tankDpDataMutexes; }
 	auto getPumpPipeVec() const { return pumpPipes; }
-	auto getPumpPipeMutexVec() const { return pumpPipeMutexes; }
 	auto getPumpFlagDataPoolVec() const { return flagDataPools; }
-	auto getPumpStatusMutexVec() const { return pumpStatusMutexes; }
 	auto getTxnApprovedEventVec() const { return txnApprovedEvents; }
 	auto getPumpStatusVec() const { return pumpStatuses; }
 	auto getPumpDataPooMutexlVec() const { return pumpDpDataMutexes; }
@@ -317,11 +305,9 @@ public:
 	shared_ptr<CMutex> getTankDpMutex(int n) const { return tankDpDataMutexes[n]; }
 	shared_ptr<CMutex> getPumpWindowMutex() const { return pumpWindowMutex; }
 	shared_ptr<CMutex> getComputerWindowMutex() const { return computerWindowMutex; }
-	shared_ptr<CMutex> getCustomerPipeMutex() const { return customerPipeMutex; }
 
 	
 	shared_ptr<CRendezvous> getRndv() const { return rndv; }
-	shared_ptr<CTypedPipe<CustomerRecord>> getCustomerPipe() const { return customerPipe; }
 	shared_ptr<CTypedPipe<Cmd>> getAttendentPipe() const { return attendentPipe; }
 
 	shared_ptr<CMutex> getPumpDpDataMutex(int n) const { return pumpDpDataMutexes[n]; }
@@ -331,12 +317,10 @@ public:
 	shared_ptr<CSemaphore> getConsumer(int n) const { return consumers[n]; }
 
 	shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
-	shared_ptr<CMutex> getPumpPipeMutex(int n) const { return pumpPipeMutexes[n]; }
 
 	shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
 
 	shared_ptr<PumpStatus> getPumpStatus(int n) const { return pumpStatuses[n]; }
-	shared_ptr<CMutex> getPumpStatusMutex(int n) const { return pumpStatusMutexes[n]; }
 };
 
 extern SharedResources sharedResources;
