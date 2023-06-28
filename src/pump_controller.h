@@ -5,7 +5,7 @@
 #include "common.h"
 
 
-class PumpData
+class PumpController
 {
 private:
 	int id_;
@@ -23,7 +23,7 @@ private:
 	shared_ptr<CSemaphore> producer, consumer;
 
 public:
-	PumpData(int id);
+	PumpController(int id);
 	void printPumpData();
 	void printPumpStatus(const CustomerRecord& record) const;
 	void readData();

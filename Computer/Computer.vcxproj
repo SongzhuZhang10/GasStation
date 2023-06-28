@@ -21,14 +21,14 @@
   <ItemGroup>
     <ClInclude Include="..\src\common.h" />
     <ClInclude Include="..\src\computer.h" />
-    <ClInclude Include="..\src\pump_data.h" />
+    <ClInclude Include="..\src\pump_controller.h" />
     <ClInclude Include="..\src\rt.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\common.cpp" />
     <ClCompile Include="..\src\computer.cpp" />
     <ClCompile Include="..\src\computer_main.cpp" />
-    <ClCompile Include="..\src\pump_data.cpp" />
+    <ClCompile Include="..\src\pump_controller.cpp" />
     <ClCompile Include="..\src\rt.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

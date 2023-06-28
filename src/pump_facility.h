@@ -9,7 +9,7 @@
 #include "customer.h"
 #include <string>
 #include <vector>
-#include "pump_data.h"
+#include "pump_controller.h"
 
 /***********************************************
  *                                             *

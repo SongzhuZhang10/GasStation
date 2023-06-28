@@ -12,8 +12,6 @@ Customer::Customer(vector<unique_ptr<Pump>>& pumps) : pumpId(-1), pumps_(pumps)
     windowMutex = sharedResources.getPumpWindowMutex();
     pipe = sharedResources.getPumpPipeVec();
     txnApprovedEvent = sharedResources.getTxnApprovedEventVec();
-
-    pumpDataVec = sharedResources.getPumpDpDataPtrVec();
     
     data.name = getRandomName();
     data.requestedVolume = getRandomFloat(MIN_LITERS, MAX_LITERS);
@@ -26,12 +24,11 @@ int
 Customer::getAvailPumpId()
 {
     status = CustomerStatus::WaitForPump;
-
     while (true) {
         pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
             if ( !pumps_[i]->isBusy() ) {
-                // Own the pump so that it cannot be shared by others
+                // Own the pump so that it cannot be shared by others.
                 pumps_[i]->setBusy();
                 data.pumpId = i;
                 pumpEnquiryMutex->Signal();
@@ -41,7 +38,6 @@ Customer::getAvailPumpId()
         }
         pumpEnquiryMutex->Signal();
     }
-
 }
 
 void
@@ -85,7 +81,6 @@ void
 Customer::getFuel()
 {
     status = CustomerStatus::WaitForAuth;
-    bool txn_completed = false;
 
     txnApprovedEvent[pumpId]->Wait();
     
@@ -93,8 +88,8 @@ Customer::getFuel()
 
     do {
         pumpDpMutex->Wait();
-        data.receivedVolume = pumpDataVec[pumpId]->receivedVolume;
-        data.cost = pumpDataVec[pumpId]->cost;
+        data.receivedVolume = pumps_[pumpId]->getReceivedVolume();
+        data.cost = pumps_[pumpId]->getCost();
         pumpDpMutex->Signal();
     } while (data.receivedVolume < data.requestedVolume);
 }

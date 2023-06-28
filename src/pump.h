@@ -50,5 +50,7 @@ public:
 	void setBusy();
 	bool isBusy();
 	int getId();
+	float getReceivedVolume();
+	float getCost();
 };
 #endif // __PUMP_H__

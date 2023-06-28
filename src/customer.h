@@ -41,8 +41,6 @@ private:
 
 	// to protect DOS window from being shared by multiple threads at the same time
 	shared_ptr<CMutex> windowMutex;
-	
-	vector<shared_ptr<CustomerRecord>> pumpDataVec;
 
 	// to protect data pointer pointing to the data in the pump data pool
 	shared_ptr<CMutex> pumpDpMutex;

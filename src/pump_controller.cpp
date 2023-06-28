@@ -1,6 +1,6 @@
-#include "pump_data.h"
+#include "pump_controller.h"
 
-PumpData::PumpData(int id) : id_(id)
+PumpController::PumpController(int id) : id_(id)
 {
 	windowMutex = sharedResources.getComputerWindowMutex();
 
@@ -16,7 +16,7 @@ PumpData::PumpData(int id) : id_(id)
 }
 
 void
-PumpData::readData()
+PumpController::readData()
 {
 	
 	producer->Wait();
@@ -31,7 +31,7 @@ PumpData::readData()
 }
 
 void
-PumpData::archiveData()
+PumpController::archiveData()
 {
 
 
@@ -45,7 +45,7 @@ PumpData::archiveData()
 }
 
 CustomerRecord
-PumpData::getData() const
+PumpController::getData() const
 {
 	mutex->Wait();
 	CustomerRecord temp = data;
@@ -55,7 +55,7 @@ PumpData::getData() const
 }
 
 void
-PumpData::printPumpData()
+PumpController::printPumpData()
 {
 	if (prev_data == data) {
 		return;
@@ -72,7 +72,7 @@ PumpData::printPumpData()
 }
 
 void
-PumpData::printPumpStatus(const CustomerRecord& record) const
+PumpController::printPumpStatus(const CustomerRecord& record) const
 {
 	windowMutex->Wait();
 	MOVE_CURSOR(0, PUMP_STATUS_POSITION + id_ * 12);

@@ -3,7 +3,7 @@
 
 #include "rt.h"
 #include "common.h"
-#include "pump_data.h"
+#include "pump_controller.h"
 #include <list>
 
 /**
@@ -14,11 +14,11 @@
 void setupComputer();
 void printTxn(const CustomerRecord& record, int position, int txn_id);
 void exitComputer();
-void writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr);
+void writeTxnToPipe(const unique_ptr<PumpController>& pump_ctrl);
 
 UINT __stdcall readTank(void* args);
 UINT __stdcall printTxnHistory(void* args);
-UINT __stdcall readPump(void* args);
+UINT __stdcall runPump(void* args);
 
 class TxnListPrinter
 {

@@ -112,9 +112,9 @@ runPumpFacility()
 	CThread printCustomersThread(printCustomers, ACTIVE, NULL);
 
 	/**
-	 * It is absolutely necessary to ensure that the pumpDataOps are created, initialized and ready to
+	 * It is absolutely necessary to ensure that the pumpController are created, initialized and ready to
 	 * read the pump before generating any customer. This is to avoid race condition where custmers
-	 * write pipes while pumpDataOps are not ready to read the pipe, which can lead to inexplicable outputs
+	 * write pipes while pumpController are not ready to read the pipe, which can lead to inexplicable outputs
 	 * (e.g., eight customers are waiting for auth at the same time at the beginning).
 	 */
 	rndv->Wait();

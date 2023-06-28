@@ -56,6 +56,18 @@ Pump::sendTransactionInfo()
 	producer->Signal();
 }
 
+float
+Pump::getReceivedVolume()
+{
+	return data->receivedVolume;
+}
+
+float
+Pump::getCost()
+{
+	return data->cost;
+}
+
 FuelTank&
 Pump::getTank(int id)
 {

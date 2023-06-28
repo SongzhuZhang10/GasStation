@@ -39,7 +39,7 @@
     <ClCompile Include="..\src\customer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\pump_data.cpp">
+    <ClCompile Include="..\src\pump_controller.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,7 +65,7 @@
     <ClInclude Include="..\src\customer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\pump_data.h">
+    <ClInclude Include="..\src\pump_controller.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

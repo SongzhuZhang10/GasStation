@@ -139,7 +139,7 @@
     <ClCompile Include="..\src\fuel_price.cpp" />
     <ClCompile Include="..\src\fuel_tank.cpp" />
     <ClCompile Include="..\src\pump.cpp" />
-    <ClCompile Include="..\src\pump_data.cpp" />
+    <ClCompile Include="..\src\pump_controller.cpp" />
     <ClCompile Include="..\src\pump_facility.cpp" />
     <ClCompile Include="..\src\rt.cpp" />
     <ClCompile Include="..\src\pump_facility_main.cpp" />
@@ -150,7 +150,7 @@
     <ClInclude Include="..\src\fuel_price.h" />
     <ClInclude Include="..\src\fuel_tank.h" />
     <ClInclude Include="..\src\pump.h" />
-    <ClInclude Include="..\src\pump_data.h" />
+    <ClInclude Include="..\src\pump_controller.h" />
     <ClInclude Include="..\src\pump_facility.h" />
     <ClInclude Include="..\src\rt.h" />
   </ItemGroup>

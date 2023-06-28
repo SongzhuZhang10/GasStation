@@ -1,5 +1,5 @@
 #include "computer.h"
-#include "pump_data.h"
+#include "pump_controller.h"
 
 /**
  * For the variables that are used in the function definitions, they should be
@@ -23,7 +23,7 @@ shared_ptr<CTypedPipe<Cmd>> attendentPipe;
 
 vector<unique_ptr<CThread>> readPumpThreads;
 vector<int> threadIds = { 0, 1, 2, 3 };
-vector<unique_ptr<PumpData>> pumpDataOps;
+vector<unique_ptr<PumpController>> pumpController;
 vector<unique_ptr<CThread>> readTankThreads;
 
 shared_ptr<CRendezvous> rndv = sharedResources.getRndv();
@@ -75,8 +75,8 @@ setupComputer()
 	}
 
 	for (int i = 0; i < NUM_PUMPS; i++) {
-		pumpDataOps.emplace_back(make_unique<PumpData>(i));
-		readPumpThreads.emplace_back(make_unique<CThread>(readPump, ACTIVE, &threadIds[i]));
+		pumpController.emplace_back(make_unique<PumpController>(i));
+		readPumpThreads.emplace_back(make_unique<CThread>(runPump, ACTIVE, &threadIds[i]));
 	}
 
 	attendentPipe = sharedResources.getAttendentPipe();
@@ -141,14 +141,14 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 }
 
 void
-writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr)
+writeTxnToPipe(const unique_ptr<PumpController>& pump_ctrl)
 {
 
-	CustomerRecord txn = pump_data_ptr->getData();
+	CustomerRecord txn = pump_ctrl->getData();
 
 	if (txn.txnStatus == TxnStatus::Done) {
 		txn.txnStatus = TxnStatus::Archived;
-		pump_data_ptr->archiveData();
+		pump_ctrl->archiveData();
 
 		txnListMutex->Wait();
 		txnList.push_back(txn);
@@ -157,20 +157,20 @@ writeTxnToPipe(const unique_ptr<PumpData>& pump_data_ptr)
 }
 
 UINT __stdcall
-readPump(void* args)
+runPump(void* args)
 {
 	int id = *(int*)(args);
 	assert(id >= 0 && id <= 3);
 
-	pumpDataOps[id]->printPumpStatus(pumpDataOps[id]->getData());
+	pumpController[id]->printPumpStatus(pumpController[id]->getData());
 
 	while (true) {
 
-		pumpDataOps[id]->readData();
+		pumpController[id]->readData();
 
-		writeTxnToPipe(pumpDataOps[id]);
+		writeTxnToPipe(pumpController[id]);
 
-		pumpDataOps[id]->printPumpData();
+		pumpController[id]->printPumpData();
 
 	}
 	return 0;
