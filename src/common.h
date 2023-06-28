@@ -219,67 +219,68 @@ std::string txnStatusToString(TxnStatus status);
 
 std::string waitForCmd();
 
+#if 0
 template<typename T, typename... Args>
-void createAndAdd(std::vector<std::shared_ptr<T>>& vec, Args&&... args) {
-	vec.emplace_back(std::make_shared<T>(std::forward<Args>(args)...));
+void createAndAdd(std::std::vector<std::std::shared_ptr<T>>& vec, Args&&... args) {
+	vec.emplace_back(std::std::make_shared<T>(std::forward<Args>(args)...));
 }
-
+#endif
 
 class SharedResources
 {
 private:
-	shared_ptr<CMutex> pumpWindowMutex;
-	shared_ptr<CMutex> computerWindowMutex;
+	std::shared_ptr<CMutex> pumpWindowMutex;
+	std::shared_ptr<CMutex> computerWindowMutex;
 
-	shared_ptr<CTypedPipe<Cmd>> attendentPipe;
-	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pumpPipes;
+	std::shared_ptr<CTypedPipe<Cmd>> attendentPipe;
+	std::vector<std::shared_ptr<CTypedPipe<CustomerRecord>>> pumpPipes;
 
-	shared_ptr<CRendezvous> rndv;
-	vector<shared_ptr<CEvent>> txnApprovedEvents;
+	std::shared_ptr<CRendezvous> rndv;
+	std::vector<std::shared_ptr<CEvent>> txnApprovedEvents;
 
-	vector<shared_ptr<CDataPool>> tankDps;
-	vector<shared_ptr<TankData>> tankDpDataPtrs;
-	vector<shared_ptr<CMutex>> tankDpDataMutexes;
+	std::vector<std::shared_ptr<CDataPool>> tankDps;
+	std::vector<std::shared_ptr<TankData>> tankDpDataPtrs;
+	std::vector<std::shared_ptr<CMutex>> tankDpDataMutexes;
 
-	vector<shared_ptr<CDataPool>> pumpDps;
-	vector<shared_ptr<CustomerRecord>> pumpDpDataPtrs;
-	vector<shared_ptr<CReadersWritersMutex>> pumpDpDataMutexes;
+	std::vector<std::shared_ptr<CDataPool>> pumpDps;
+	std::vector<std::shared_ptr<CustomerRecord>> pumpDpDataPtrs;
+	std::vector<std::shared_ptr<CReadersWritersMutex>> pumpDpDataMutexes;
 
-	vector<shared_ptr<CSemaphore>> producers, consumers;
+	std::vector<std::shared_ptr<CSemaphore>> producers, consumers;
 
 public:
 	SharedResources() {
-		pumpWindowMutex = make_shared<CMutex>("PumpScreenMutex");
-		computerWindowMutex = make_shared<CMutex>("ComputerWindowMutex");
-		rndv = make_shared<CRendezvous>("PumpRendezvous",
+		pumpWindowMutex = std::make_shared<CMutex>("PumpScreenMutex");
+		computerWindowMutex = std::make_shared<CMutex>("ComputerWindowMutex");
+		rndv = std::make_shared<CRendezvous>("PumpRendezvous",
 										NUM_PUMPS +
 										// readTank threads of Computer
 										NUM_TANKS +
 										// main function thread of pump facility
 										1);
-		attendentPipe = make_shared<CTypedPipe<Cmd>>("AttendentPipe", 1);
+		attendentPipe = std::make_shared<CTypedPipe<Cmd>>("AttendentPipe", 1);
 		
 		
 
 		for (int i = 0; i < NUM_TANKS; i++) {
-			tankDpDataMutexes.emplace_back(make_shared<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
-			tankDps.emplace_back(make_shared<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
+			tankDpDataMutexes.emplace_back(std::make_shared<CMutex>(getName("FuelTankDataPoolMutex", i, "")));
+			tankDps.emplace_back(std::make_shared<CDataPool>(getName("FuelTankDataPool", i, ""), sizeof(TankData)));
 			tankDpDataPtrs.emplace_back(static_cast<TankData*>(tankDps[i]->LinkDataPool()));
 		}
 
 		for (int i = 0; i < NUM_PUMPS; i++) {
-			pumpDpDataMutexes.emplace_back(make_shared<CReadersWritersMutex>(getName("PumpDataPoolMutex", i, "")));
-			pumpDps.emplace_back(make_shared<CDataPool>(getName("PumpDataPool", i, ""), sizeof(CustomerRecord)));
+			pumpDpDataMutexes.emplace_back(std::make_shared<CReadersWritersMutex>(getName("PumpDataPoolMutex", i, "")));
+			pumpDps.emplace_back(std::make_shared<CDataPool>(getName("PumpDataPool", i, ""), sizeof(CustomerRecord)));
 			pumpDpDataPtrs.emplace_back(static_cast<CustomerRecord*>(pumpDps[i]->LinkDataPool()));
 
 			// semaphore with initial value 0 and max value 1
-			producers.emplace_back(make_shared<CSemaphore>(getName("PS", i, ""), 0, 1));
+			producers.emplace_back(std::make_shared<CSemaphore>(getName("PS", i, ""), 0, 1));
 			// semaphore with initial value 1 and max value 1
-			consumers.emplace_back(make_shared<CSemaphore>(getName("CS", i, ""), 1, 1));
+			consumers.emplace_back(std::make_shared<CSemaphore>(getName("CS", i, ""), 1, 1));
 
-			pumpPipes.emplace_back(make_shared<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
+			pumpPipes.emplace_back(std::make_shared<CTypedPipe<CustomerRecord>>(getName("Pipe", i, ""), 1));
 
-			txnApprovedEvents.emplace_back(make_shared<CEvent>(getName("TxnApprovedByPump", i, "")));
+			txnApprovedEvents.emplace_back(std::make_shared<CEvent>(getName("TxnApprovedByPump", i, "")));
 		}
 	}
 
@@ -292,31 +293,31 @@ public:
 
 	/**
 	 * In the context of multithreaded programming, returning by value (i.e., making a copy) ensures that
-	 * the shared_ptr and the object it owns will remain valid for the caller, even if other threads are
+	 * the std::shared_ptr and the object it owns will remain valid for the caller, even if other threads are
 	 * concurrently decreasing the reference count and might potentially delete the object.
 	 * 
 	 * Remove redundant const for return by value: For primitive types and pointers, const in the return
 	 * type doesn't prevent modification of the copied value in the calling code, so it can be removed.
 	 */
-	shared_ptr<TankData> getTankDpDataPtr(int n) const { return tankDpDataPtrs[n]; }
+	std::shared_ptr<TankData> getTankDpDataPtr(int n) const { return tankDpDataPtrs[n]; }
 
-	shared_ptr<CMutex> getTankDpMutex(int n) const { return tankDpDataMutexes[n]; }
-	shared_ptr<CMutex> getPumpWindowMutex() const { return pumpWindowMutex; }
-	shared_ptr<CMutex> getComputerWindowMutex() const { return computerWindowMutex; }
+	std::shared_ptr<CMutex> getTankDpMutex(int n) const { return tankDpDataMutexes[n]; }
+	std::shared_ptr<CMutex> getPumpWindowMutex() const { return pumpWindowMutex; }
+	std::shared_ptr<CMutex> getComputerWindowMutex() const { return computerWindowMutex; }
 
 	
-	shared_ptr<CRendezvous> getRndv() const { return rndv; }
-	shared_ptr<CTypedPipe<Cmd>> getAttendentPipe() const { return attendentPipe; }
+	std::shared_ptr<CRendezvous> getRndv() const { return rndv; }
+	std::shared_ptr<CTypedPipe<Cmd>> getAttendentPipe() const { return attendentPipe; }
 
 	auto getPumpDpDataMutex(int n) const { return pumpDpDataMutexes[n]; }
-	shared_ptr<CustomerRecord> getPumpDpDataPtr(int n) const { return pumpDpDataPtrs[n]; }
+	std::shared_ptr<CustomerRecord> getPumpDpDataPtr(int n) const { return pumpDpDataPtrs[n]; }
 
-	shared_ptr<CSemaphore> getProducer(int n) const { return producers[n]; }
-	shared_ptr<CSemaphore> getConsumer(int n) const { return consumers[n]; }
+	std::shared_ptr<CSemaphore> getProducer(int n) const { return producers[n]; }
+	std::shared_ptr<CSemaphore> getConsumer(int n) const { return consumers[n]; }
 
-	shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
+	std::shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
 
-	shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
+	std::shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
 };
 
 extern SharedResources sharedResources;

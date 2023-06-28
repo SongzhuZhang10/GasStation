@@ -1,5 +1,7 @@
 #include "pump_facility.h"
 
+using namespace std;
+
 /**
  * Plan: incorperate the four tanks inside the pump facility which is the top level.
  * The pump facality also includes the four pumps.

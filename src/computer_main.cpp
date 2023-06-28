@@ -1,6 +1,5 @@
 #include "computer.h"
 
-
 int main(void) {
 
 	setupComputer();
@@ -19,7 +18,7 @@ int main(void) {
 
 	exitComputer();
 
-	cout << "Press Enter to terminate the Computer process." << endl;
+	std::cout << "Press Enter to terminate the Computer process." << std::endl;
 	waitForKeyPress();
 
 	return 0;

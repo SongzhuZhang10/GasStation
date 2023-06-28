@@ -1,5 +1,9 @@
 #include "customer.h"
 #include <cstdlib>
+#include <random>
+#include <cmath>
+
+using namespace std;
 
 constexpr int MIN_LITERS = 5;
 constexpr int MAX_LITERS = 70;
@@ -206,8 +210,8 @@ Customer::getRandomFloat(float min, float max) {
     random_device rd;  // Obtain a random seed from the hardware
     mt19937 gen(rd());  // Seed the random number generator
     uniform_real_distribution<float> dis(min, max);  // Define the range
-
-    return dis(gen);  // Generate and return a random float
+    // Round a floating point value to three decimal places
+    return round(dis(gen) * 1000) / 1000;  // Generate and return a random float
 }
 
 int

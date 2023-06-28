@@ -7,17 +7,17 @@
 class Attendent
 {
 private:
-	vector<shared_ptr<CReadersWritersMutex>> pumpMutex;
-	vector<shared_ptr<CustomerRecord>> pumpDpData;
+	std::vector<std::shared_ptr<CReadersWritersMutex>> pumpMutex;
+	std::vector<std::shared_ptr<CustomerRecord>> pumpDpData;
 
-	vector<shared_ptr<CEvent>> txnApprovedEvent;
+	std::vector<std::shared_ptr<CEvent>> txnApprovedEvent;
 
-	shared_ptr<CTypedPipe<Cmd>> pipe;
+	std::shared_ptr<CTypedPipe<Cmd>> pipe;
 
 	CustomerRecord pumpData[NUM_PUMPS];
 
-	vector<shared_ptr<CMutex>> tankMutex;
-	vector<shared_ptr<TankData>> tankDpData;
+	std::vector<std::shared_ptr<CMutex>> tankMutex;
+	std::vector<std::shared_ptr<TankData>> tankDpData;
 
 public:
 	Attendent();

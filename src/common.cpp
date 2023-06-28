@@ -1,5 +1,7 @@
 #include "common.h"
 
+using namespace std;
+
 SharedResources sharedResources;
 
 std::string

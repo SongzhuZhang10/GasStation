@@ -18,9 +18,9 @@
 class FuelTank
 {
 private:
-	shared_ptr<TankData> data;
-	shared_ptr<CMutex> mutex;
-	shared_ptr<CMutex> windowMutex;
+	std::shared_ptr<TankData> data;
+	std::shared_ptr<CMutex> mutex;
+	std::shared_ptr<CMutex> windowMutex;
 
 	int id_;
 	FuelGrade fuelGrade;

@@ -38,7 +38,6 @@
 #include <iostream>
 #include <string>
 
-using namespace std;
 
 
 //	the following describes all the global variables used by this thread
@@ -118,7 +117,7 @@ void	REVERSE_ON();				// turn on inverse video
 void	REVERSE_OFF();				// turn off inverse video
 void	CLEAR_SCREEN();			// clears the screen
 
-void PERR(bool bSuccess, string ErrorMessageString);
+void PERR(bool bSuccess, std::string ErrorMessageString);
 
 
 UINT	WAIT_FOR_MULTIPLE_OBJECTS(UINT nCount,             // number of handles in the handle array
@@ -136,7 +135,7 @@ UINT	WAIT_FOR_MULTIPLE_OBJECTS(UINT nCount,             // number of handles in 
 class CProcess {					// see Process related functions in rt.cpp for more details
 private:
 	PROCESS_INFORMATION pInfo;
-	const string ProcessName;		// name of process
+	const std::string ProcessName;		// name of process
 
 public:
 	// constructor to create a child process, takes four 
@@ -149,7 +148,7 @@ public:
 	//executable
 	//	all other values can be supplied by default
 
-	CProcess(const string& Name,							// pathlist/name of executable program (.exe) that will be the child process
+	CProcess(const std::string& Name,							// pathlist/name of executable program (.exe) that will be the child process
 		int Priority = NORMAL_PRIORITY_CLASS,		// Priority of the process
 		//	The allowed priorities are:	
 		//	HIGH_PRIORITY_CLASS			Use for important time critical tasks
@@ -162,12 +161,12 @@ public:
 
 		BOOL bCreateSuspended = ACTIVE,				// use SUSPENDED to make new child processes main thread suspended when process is created
 		// use ACTIVE to make new child processes main thread active when process iscreated
-		const string& ChildProcessArgString = ""
+		const std::string& ChildProcessArgString = ""
 	);
 
 	virtual ~CProcess() {}				// destructor (does nothing by default)
-	inline operator string	() const { return ProcessName; }
-	inline string	GetName() const { return ProcessName; }
+	inline operator std::string	() const { return ProcessName; }
+	inline std::string	GetName() const { return ProcessName; }
 
 	inline HANDLE	GetProcessHandle() const { return pInfo.hProcess; }		// get the process's handle
 	inline HANDLE	GetThreadHandle() const { return pInfo.hThread; }		// get the process's main thread handle
@@ -582,7 +581,7 @@ class CMutex {												// see Mutex related functions in rt.cpp for more deta
 	//##ModelId=3DE6123A0358
 	HANDLE	MutexHandle;		// handle to the mutex
 	//##ModelId=3DE6123A0363
-	const string MutexName;
+	const std::string MutexName;
 
 public:
 
@@ -600,8 +599,8 @@ public:
 	//##ModelId=3DE6123A0395
 	inline operator HANDLE	() const { return MutexHandle; }			// ditto
 
-	inline operator string	() const { return MutexName; }
-	inline string	GetName() const { return MutexName; }
+	inline operator std::string	() const { return MutexName; }
+	inline std::string	GetName() const { return MutexName; }
 
 	// constructs mutex with name and indicates whether 
 	//object protected by mutex is owned by creator or not
@@ -610,7 +609,7 @@ public:
 	// then it will default to NOTOWNED
 
 	//##ModelId=3DE6123A0397
-	CMutex(const string& Name, BOOL bOwned = NOTOWNED);
+	CMutex(const std::string& Name, BOOL bOwned = NOTOWNED);
 	//##ModelId=3DE6123A03A9
 	inline virtual ~CMutex() { Unlink(); }			// destructor unlinks mutex
 };
@@ -688,19 +687,19 @@ class CEvent				// based around Win32 event
 protected:
 
 	HANDLE	EventHandle;			// handle to the event
-	const	string EventName;		// Name of the event
+	const	std::string EventName;		// Name of the event
 
 public:
 
 
 	inline HANDLE GetHandle() const { return EventHandle; }				// get handle to event
 	inline operator HANDLE	() const { return EventHandle; }			// ditto
-	inline operator string	() const { return EventName; }
-	inline string	GetName() const { return EventName; }
+	inline operator std::string	() const { return EventName; }
+	inline std::string	GetName() const { return EventName; }
 
 	inline ~CEvent() { Unlink(); }
 
-	CEvent(const string& Name, BOOL bType = MULTIPLE_RELEASE, BOOL bState = NOTSIGNALLED);	// btype = SINGLE_RELEASE or MULTIPLE_RELEASE to allow one or many thread to resume when event is signalled
+	CEvent(const std::string& Name, BOOL bType = MULTIPLE_RELEASE, BOOL bState = NOTSIGNALLED);	// btype = SINGLE_RELEASE or MULTIPLE_RELEASE to allow one or many thread to resume when event is signalled
 	// bState = SIGNALLED or NOTSIGNALLED to indicate the initial or creation state of the event
 
 	BOOL Unlink() const;								// unlink from event, i.e. we have finished using it
@@ -807,21 +806,21 @@ class CCondition 						// create a condition class that releases all threads whe
 protected:
 
 	HANDLE	ConditionHandle;			// handle to the Condition
-	const string ConditionName;		// Name of the Condition
+	const std::string ConditionName;		// Name of the Condition
 
 public:
 
 	inline HANDLE GetHandle() const { return ConditionHandle; }		// get handle to Condition
 	inline operator HANDLE	() const { return ConditionHandle; }			// ditto
-	inline operator string	() const { return ConditionName; }
-	inline string	GetName() const { return ConditionName; }
+	inline operator std::string	() const { return ConditionName; }
+	inline std::string	GetName() const { return ConditionName; }
 	inline ~CCondition() { Unlink(); }
 
 	//
 	//	bType default to a Manual reset event, use AUTORESET if you want auto reseting after waiting for one thread
 	//
 
-	CCondition(const string& Name, BOOL bType = MANUAL, BOOL bState = NOTSIGNALLED);
+	CCondition(const std::string& Name, BOOL bType = MANUAL, BOOL bState = NOTSIGNALLED);
 	BOOL Unlink() const;								// unlink from Condition, i.e. we have finished using it
 
 	// Signal() sets the Condition and will release ALL Waiting threads. It can be reset by calling Reset()
@@ -1003,7 +1002,7 @@ class CSemaphore {				// see Semaphore related functions in rt.cpp for more deta
 	//##ModelId=3DE6123B0261
 	HANDLE	SemaphoreHandle;		// handle to the semaphore
 	//##ModelId=3DE6123B026B
-	const string SemaphoreName;
+	const std::string SemaphoreName;
 
 public:
 
@@ -1020,15 +1019,15 @@ public:
 	//##ModelId=3DE6123B029E
 	operator HANDLE	() const { return SemaphoreHandle; }
 
-	inline operator string	() const { return SemaphoreName; }
-	inline string	GetName() const { return SemaphoreName; }
+	inline operator std::string	() const { return SemaphoreName; }
+	inline std::string	GetName() const { return SemaphoreName; }
 
 
 	// construct semaphore by name with initial and max 
 	//permissible values
 
 	//##ModelId=3DE6123B02A6
-	CSemaphore(const string& Name, int InitialVal, int MaxVal = 1);
+	CSemaphore(const std::string& Name, int InitialVal, int MaxVal = 1);
 	//##ModelId=3DE6123B02B1
 	virtual ~CSemaphore() { Unlink(); }
 };
@@ -1400,14 +1399,14 @@ class CDataPool {							// see Datapool related functions in rt.cpp for more det
 	//##ModelId=3DE6123C01B8
 	DATAPOOLINFO	DPInfo;
 	//##ModelId=3DE6123C01C2
-	const string DataPoolName;
+	const std::string DataPoolName;
 
 public:
 	//
 	//	Constructor creates a named datapool object with a 
 	//specified size
 	//##ModelId=3DE6123C01CB
-	CDataPool(const string& Name, UINT size);
+	CDataPool(const std::string& Name, UINT size);
 
 	//	The following function returns a pointer to the 
 	//created datapool. The type of pointer is void
@@ -1420,8 +1419,8 @@ public:
 	//##ModelId=3DE6123C01E0
 	BOOL Unlink() const;
 
-	inline operator string	() const { return DataPoolName; }
-	inline string	GetName() const { return DataPoolName; }
+	inline operator std::string	() const { return DataPoolName; }
+	inline std::string	GetName() const { return DataPoolName; }
 
 
 	//##ModelId=3DE6123C01E9
@@ -1511,7 +1510,7 @@ class CLiftData : public CDataPool {
 	struct DATA *MyDataPoolptr ;
 
   public:
-	CLiftData(const string &Name) :						// the constructor for the new class
+	CLiftData(const std::string &Name) :						// the constructor for the new class
 		CDataPool(Name, sizeof(struct DATA))
 	{
 		MyDataPoolptr = (struct DATA *)(LinkDataPool()) ;		// link to the datapool when it is created
@@ -1567,7 +1566,7 @@ class CRendezvous
 	CDataPool* RendezvousDataPool;
 	CEvent* RendezvousEvent;
 	CMutex* RendezvousMutex;
-	string		RendezvousName;
+	std::string		RendezvousName;
 
 	struct RendezvousData {
 		int		NumberWaiting;		// number of threads waiting to rndv
@@ -1577,11 +1576,11 @@ class CRendezvous
 
 public:
 
-	CRendezvous(const string& TheRendezvousName, int NumberThreads);
+	CRendezvous(const std::string& TheRendezvousName, int NumberThreads);
 	~CRendezvous();
 	void Wait();
-	inline operator string	() const { return RendezvousName; }
-	inline string	GetName() const { return RendezvousName; }
+	inline operator std::string	() const { return RendezvousName; }
+	inline std::string	GetName() const { return RendezvousName; }
 };
 
 //
@@ -1590,7 +1589,7 @@ public:
 
 class CReadersWritersMutex
 {
-	string		Name;
+	std::string		Name;
 
 	CMutex* ReadersWritersMutex;
 	CSemaphore* ReadersWritersSemaphore;
@@ -1603,7 +1602,7 @@ class CReadersWritersMutex
 
 public:
 
-	CReadersWritersMutex(const string& MyName);
+	CReadersWritersMutex(const std::string& MyName);
 	~CReadersWritersMutex();
 
 	void WaitToRead();	// called by a reader when they wish to access to the resource
@@ -1612,8 +1611,8 @@ public:
 
 	void DoneWriting();	// called by a writer when they have finished with the resource
 
-	inline operator string	() const { return Name; }
-	inline string	GetName() const { return Name; }
+	inline operator std::string	() const { return Name; }
+	inline std::string	GetName() const { return Name; }
 };
 
 
@@ -1697,7 +1696,7 @@ int main()
 //
 class CWritersReadersMutex
 {
-	string		Name;
+	std::string		Name;
 
 	CMutex* WritersReadersMutex;
 	CSemaphore* WritersReadersSemaphore;
@@ -1712,15 +1711,15 @@ class CWritersReadersMutex
 
 public:
 
-	CWritersReadersMutex(const string& MyName);
+	CWritersReadersMutex(const std::string& MyName);
 	~CWritersReadersMutex();
 	void WaitToRead();
 	void DoneReading();
 	void WaitToWrite();
 	void DoneWriting();
 
-	inline operator string	() const { return Name; }
-	inline string	GetName() const { return Name; }
+	inline operator std::string	() const { return Name; }
+	inline std::string	GetName() const { return Name; }
 };
 
 /*
@@ -1800,7 +1799,7 @@ int main()
 
 class CSleepingBarbers
 {
-	string Name;
+	std::string Name;
 
 	CSemaphore* Customers;		// number of customers waiting for hair cut (initially set to 0)
 	CSemaphore* Barbers;		// number of barbers cutting hair (initially set to 0)
@@ -1810,17 +1809,17 @@ class CSleepingBarbers
 	struct Data {
 		int NumberOfWaitingCustomers;	// number of waiting customers
 		int NumberOfChairs;			// number of chairs in the barber shop
-		char Initialised[12];			// a string to indicate if this object has been initialised
+		char Initialised[12];			// a std::string to indicate if this object has been initialised
 	} *ptr;
 
 public:
 
-	CSleepingBarbers(const string& _Name, int _NumberOfChairs) : Name(_Name)
+	CSleepingBarbers(const std::string& _Name, int _NumberOfChairs) : Name(_Name)
 	{
-		Mutex = new CMutex(string("__SleepingBarbersMutex__") + Name);
-		Customers = new CSemaphore(string("__CustomersSemaphore__") + Name, 0, _NumberOfChairs);
-		Barbers = new CSemaphore(string("__BarbersSemaphore__") + Name, 0, _NumberOfChairs);
-		DataPool = new CDataPool(string("__SleepingBarbersDataPool__") + Name, sizeof(struct Data));
+		Mutex = new CMutex(std::string("__SleepingBarbersMutex__") + Name);
+		Customers = new CSemaphore(std::string("__CustomersSemaphore__") + Name, 0, _NumberOfChairs);
+		Barbers = new CSemaphore(std::string("__BarbersSemaphore__") + Name, 0, _NumberOfChairs);
+		DataPool = new CDataPool(std::string("__SleepingBarbersDataPool__") + Name, sizeof(struct Data));
 		ptr = (struct Data*)(DataPool->LinkDataPool());
 
 		if (strcmp(ptr->Initialised, "Initialised") != 0) {
@@ -1877,8 +1876,8 @@ public:
 		}
 	}
 
-	inline operator string	() const { return Name; }
-	inline string	GetName() const { return Name; }
+	inline operator std::string	() const { return Name; }
+	inline std::string	GetName() const { return Name; }
 
 };
 
@@ -1973,7 +1972,7 @@ class CDinningPhilosophers {
 private:
 
 	const		int	NUMBER_OF_PHILOSOPHERS;
-	string		Name;
+	std::string		Name;
 	CMutex* Mutex;
 	CDataPool* DataPool;
 	CEvent* Event[5];				// array of event pointers, 1 per philosopher
@@ -1981,7 +1980,7 @@ private:
 
 	struct Data {
 		int State[5];					// one state per philosopher
-		char Initialised[12];			// to hold an initialised string
+		char Initialised[12];			// to hold an initialised std::string
 	} *ptr;
 
 	enum PhilosopherStates { THINKING, HUNGRY, EATING };	// set of integer constants representing states of philosophers, 
@@ -1989,17 +1988,17 @@ private:
 
 public:
 
-	CDinningPhilosophers(const string _Name) : Name(_Name), NUMBER_OF_PHILOSOPHERS(5)
+	CDinningPhilosophers(const std::string _Name) : Name(_Name), NUMBER_OF_PHILOSOPHERS(5)
 	{
-		Mutex = new CMutex(string("__DinningPhilosophersMutex__") + _Name);
-		DataPool = new CDataPool(string("__DinningPhilosophersDataPool__") + _Name, sizeof(struct Data));
+		Mutex = new CMutex(std::string("__DinningPhilosophersMutex__") + _Name);
+		DataPool = new CDataPool(std::string("__DinningPhilosophersDataPool__") + _Name, sizeof(struct Data));
 		ptr = (struct Data*)(DataPool->LinkDataPool());
 
 		char buff[10];
 		for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++)
 		{
-			sprintf_s(buff, "%d", i);				// write 'i' as a string for next statement
-			Event[i] = new CEvent(string("__DinningPhilosophersSemaphore__") + _Name + string(buff));
+			sprintf_s(buff, "%d", i);				// write 'i' as a std::string for next statement
+			Event[i] = new CEvent(std::string("__DinningPhilosophersSemaphore__") + _Name + std::string(buff));
 		}
 
 		if (strcmp(ptr->Initialised, "Initialised") != 0)
@@ -2060,8 +2059,8 @@ private:
 		return ((i + 1) % NUMBER_OF_PHILOSOPHERS);
 	}
 
-	inline operator string	() const { return Name; }
-	inline string	GetName() const { return Name; }
+	inline operator std::string	() const { return Name; }
+	inline std::string	GetName() const { return Name; }
 
 };
 
@@ -2152,11 +2151,11 @@ private:
 	CSemaphore* pConSemaphore;			// handle for the consumer semaphore in the pipeline
 
 	//##ModelId=3DE6123C03A2
-	const string PipeName;
+	const std::string PipeName;
 
 public:
 	//##ModelId=3DE6123C03AB
-	CPipe(const string& Name, UINT SizeOfPipe = 1024);			// default constructor, creates a named pipe of specified size, default is 1024 bytes
+	CPipe(const std::string& Name, UINT SizeOfPipe = 1024);			// default constructor, creates a named pipe of specified size, default is 1024 bytes
 
 	//##ModelId=3DE6123C03B5
 	virtual ~CPipe();
@@ -2168,8 +2167,8 @@ public:
 	//##ModelId=3DE6123C03D5
 	UINT	TestForData() const;				// indicates how many bytes are in a pipe available to read
 
-	inline operator string	() const { return PipeName; }
-	inline string	GetName() const { return PipeName; }
+	inline operator std::string	() const { return PipeName; }
+	inline std::string	GetName() const { return PipeName; }
 };
 
 
@@ -2250,7 +2249,7 @@ class CTypedPipe :
 
 public:
 	//##ModelId=3DE6123D0104
-	CTypedPipe(const string& Name, UINT NumElements = 1024);			// default constructor = space for 1024 elements of size T
+	CTypedPipe(const std::string& Name, UINT NumElements = 1024);			// default constructor = space for 1024 elements of size T
 	//##ModelId=3DE6123D010F
 	virtual ~CTypedPipe();
 
@@ -2278,7 +2277,7 @@ public:
 
 //##ModelId=3DE6123D0104
 template <class T>
-CTypedPipe<T>::CTypedPipe(const string& Name, UINT NumElements)
+CTypedPipe<T>::CTypedPipe(const std::string& Name, UINT NumElements)
 	:CPipe(Name, NumElements * sizeof(T))
 {}
 

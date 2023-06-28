@@ -14,7 +14,7 @@
 void setupComputer();
 void printTxn(const CustomerRecord& record, int position, int txn_id);
 void exitComputer();
-void writeTxnToPipe(const unique_ptr<PumpController>& pump_ctrl);
+void writeTxnToPipe(const std::unique_ptr<PumpController>& pump_ctrl);
 
 UINT __stdcall readTank(void* args);
 UINT __stdcall printTxnHistory(void* args);
@@ -25,20 +25,20 @@ class TxnListPrinter
 private:
 	/**
 	 * Using a smart pointer would not be better here.
-	 * This class does not own the list it's printing. It's just given a address reference to it.
-	 * Thus, it's not this class's responsibility to delete the list when it's done.
-	 * This is the responsibility of whoever owns the list that is passed to the class's constructor.
+	 * This class does not own the std::list it's printing. It's just given a address reference to it.
+	 * Thus, it's not this class's responsibility to delete the std::list when it's done.
+	 * This is the responsibility of whoever owns the std::list that is passed to the class's constructor.
 	 * It's considered good practice to use raw pointers or references when you want to merely observe
 	 * an object (i.e., you don't need to control its lifetime).
-	 * The reference to the list tells users of the ListPrinter class that the class will use the list
+	 * The reference to the std::list tells users of the ListPrinter class that the class will use the std::list
 	 * but won't manage its memory.
 	 */
-	list<CustomerRecord>* lst;
+	std::list<CustomerRecord>* lst;
 	
-	unique_ptr<CMutex> mutex;
+	std::unique_ptr<CMutex> mutex;
 
 public:
-	TxnListPrinter(list<CustomerRecord>& lst);
+	TxnListPrinter(std::list<CustomerRecord>& lst);
 
 	void printNew();
 };

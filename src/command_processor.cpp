@@ -3,6 +3,8 @@
 #include <sstream>
 #include "command_processor.h"
 
+using namespace std;
+
 CommandProcessor::CommandProcessor()
 {
     /**

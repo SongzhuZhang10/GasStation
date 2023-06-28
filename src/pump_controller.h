@@ -15,12 +15,12 @@ private:
 	CustomerRecord data;
 	CustomerRecord prev_data;
 
-	shared_ptr<CReadersWritersMutex> mutex;
-	shared_ptr<CMutex> windowMutex;
+	std::shared_ptr<CReadersWritersMutex> mutex;
+	std::shared_ptr<CMutex> windowMutex;
 
-	shared_ptr<CustomerRecord> dpData;
+	std::shared_ptr<CustomerRecord> dpData;
 
-	shared_ptr<CSemaphore> producer, consumer;
+	std::shared_ptr<CSemaphore> producer, consumer;
 
 public:
 	PumpController(int id);

@@ -5,7 +5,6 @@
 #include "common.h"
 #include "fuel_price.h"
 #include "pump.h"
-#include <random>
 
 class Customer : public ActiveClass {
 private:
@@ -27,26 +26,26 @@ private:
 
 	int pumpId;
 
-	unique_ptr<CMutex> pumpEnquiryMutex;
+	std::unique_ptr<CMutex> pumpEnquiryMutex;
 
 	CustomerRecord data;
 
 	FuelPrice price;
 
-	vector<shared_ptr<CEvent>> txnApprovedEvent;
+	std::vector<std::shared_ptr<CEvent>> txnApprovedEvent;
 
-	vector<unique_ptr<Pump>>& pumps_;
+	std::vector<std::unique_ptr<Pump>>& pumps_;
 
-	vector<shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
+	std::vector<std::shared_ptr<CTypedPipe<CustomerRecord>>> pipe;
 
 	// to protect DOS window from being shared by multiple threads at the same time
-	shared_ptr<CMutex> windowMutex;
+	std::shared_ptr<CMutex> windowMutex;
 
 	// to protect data pointer pointing to the data in the pump data pool
-	shared_ptr<CReadersWritersMutex> pumpDpMutex;
+	std::shared_ptr<CReadersWritersMutex> pumpDpMutex;
 
-	string getRandomName();
-	string getRandomCreditCardNumber();
+	std::string getRandomName();
+	std::string getRandomCreditCardNumber();
 	FuelGrade getRandomFuelGrade();
 	float getRandomFloat(float min, float max);
 	void writePipe(CustomerRecord* customer);
@@ -60,15 +59,15 @@ private:
 	void getFuel();
 	void returnGasHose();
 	void driveAway();
-	string customerStatusToString(const CustomerStatus& status) const;
+	std::string customerStatusToString(const CustomerStatus& status) const;
 	// To trigger the this function, the declaration must be exactly
 	// in this form, including the `void` keyword.
 	int main(void); 
 
 public:
-	Customer(vector<unique_ptr<Pump>>& pumps);
+	Customer(std::vector<std::unique_ptr<Pump>>& pumps);
 	CustomerRecord& getData();
-	string getStatusString();
+	std::string getStatusString();
 
 };
 

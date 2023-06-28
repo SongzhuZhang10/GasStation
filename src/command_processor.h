@@ -24,7 +24,7 @@ private:
     std::mutex commandMutex, outputMutex;
     bool commandCompleted = true; // No command running at start
 
-    unique_ptr<Attendent> attendent;
+    std::unique_ptr<Attendent> attendent;
 
 public:
     CommandProcessor();

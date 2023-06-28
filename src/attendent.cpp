@@ -1,5 +1,7 @@
 #include "attendent.h"
 
+using namespace std;
+
 Attendent::Attendent()
 {
 	pumpMutex = sharedResources.getPumpDataPooMutexlVec();

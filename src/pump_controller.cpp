@@ -1,5 +1,7 @@
 #include "pump_controller.h"
 
+using namespace std;
+
 PumpController::PumpController(int id) : id_(id)
 {
 	windowMutex = sharedResources.getComputerWindowMutex();

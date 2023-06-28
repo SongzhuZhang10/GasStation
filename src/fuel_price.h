@@ -8,9 +8,9 @@ class FuelPrice
 {
 private:
 	// Unordered map to hold FuelGrade -> float mappings
-	unordered_map<FuelGrade, float> fuelData;
+	std::unordered_map<FuelGrade, float> fuelData;
 	// Function to get the float value associated with a FuelGrade
-	optional<float> getFuelPrice(FuelGrade grade);
+	std::optional<float> getFuelPrice(FuelGrade grade);
 
 public:
 	FuelPrice()

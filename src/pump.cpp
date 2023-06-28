@@ -1,6 +1,8 @@
 #include "pump.h"
 #include <iomanip>
 
+using namespace std;
+
 Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks), busy(false)
 {
 	windowMutex = sharedResources.getPumpWindowMutex();

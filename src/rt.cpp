@@ -17,6 +17,7 @@
 
 #include "rt.h"
 
+using namespace std;
 // constructor to create a child process, takes four 
 //arguments, note that the last 3 make use
 //	of default argument, that is, if you do not supply 

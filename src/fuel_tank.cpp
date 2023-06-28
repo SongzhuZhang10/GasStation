@@ -1,6 +1,8 @@
 #include "fuel_tank.h"
 #include "common.h"
 
+using namespace std;
+
 FuelTank::FuelTank(int id) : id_(id)
 {
 	windowMutex = sharedResources.getPumpWindowMutex();

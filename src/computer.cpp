@@ -1,6 +1,7 @@
 #include "computer.h"
 #include "pump_controller.h"
 
+using namespace std;
 /**
  * For the variables that are used in the function definitions, they should be
  * declared inside the implementation file.

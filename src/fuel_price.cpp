@@ -1,5 +1,7 @@
 #include "fuel_price.h"
 
+using namespace std;
+
 optional<float>
 FuelPrice::getFuelPrice(FuelGrade grade)
 {

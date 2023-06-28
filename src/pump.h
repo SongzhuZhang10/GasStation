@@ -12,27 +12,27 @@ class Pump : public ActiveClass
 private:
 	int id_;
 	bool busy;
-	string name;
+	std::string name;
 	FuelPrice price;
 
-	shared_ptr<CustomerRecord> data;
+	std::shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool
-	shared_ptr<CReadersWritersMutex> dpMutex;
+	std::shared_ptr<CReadersWritersMutex> dpMutex;
 
-	shared_ptr<CTypedPipe<CustomerRecord>> pipe;
+	std::shared_ptr<CTypedPipe<CustomerRecord>> pipe;
 
 	// to protect DOS window from being shared by multiple threads at the same time
-	shared_ptr<CMutex> windowMutex;
+	std::shared_ptr<CMutex> windowMutex;
 
 	CustomerRecord customer;
 
-	vector<unique_ptr<FuelTank>>& tanks_;
+	std::vector<std::unique_ptr<FuelTank>>& tanks_;
 
-	shared_ptr<CEvent> txnApprovedEvent;
+	std::shared_ptr<CEvent> txnApprovedEvent;
 
-	shared_ptr<CRendezvous> rndv;
+	std::shared_ptr<CRendezvous> rndv;
 
-	shared_ptr<CSemaphore> producer, consumer;
+	std::shared_ptr<CSemaphore> producer, consumer;
 
 	// To create a class thread out of this function, the return value type must be `int`.
 	void readPipe();
@@ -46,7 +46,7 @@ private:
 	FuelTank& getTank(int id);
 
 public:
-	Pump(int id, vector<unique_ptr<FuelTank>>& tanks);
+	Pump(int id, std::vector<std::unique_ptr<FuelTank>>& tanks);
 	void setBusy();
 	bool isBusy();
 	int getId();
