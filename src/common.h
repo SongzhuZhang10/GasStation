@@ -243,7 +243,7 @@ private:
 
 	vector<shared_ptr<CDataPool>> pumpDps;
 	vector<shared_ptr<CustomerRecord>> pumpDpDataPtrs;
-	vector<shared_ptr<CMutex>> pumpDpDataMutexes;
+	vector<shared_ptr<CReadersWritersMutex>> pumpDpDataMutexes;
 
 	vector<shared_ptr<CSemaphore>> producers, consumers;
 
@@ -268,7 +268,7 @@ public:
 		}
 
 		for (int i = 0; i < NUM_PUMPS; i++) {
-			pumpDpDataMutexes.emplace_back(make_shared<CMutex>(getName("PumpDataPoolMutex", i, "")));
+			pumpDpDataMutexes.emplace_back(make_shared<CReadersWritersMutex>(getName("PumpDataPoolMutex", i, "")));
 			pumpDps.emplace_back(make_shared<CDataPool>(getName("PumpDataPool", i, ""), sizeof(CustomerRecord)));
 			pumpDpDataPtrs.emplace_back(static_cast<CustomerRecord*>(pumpDps[i]->LinkDataPool()));
 
@@ -308,7 +308,7 @@ public:
 	shared_ptr<CRendezvous> getRndv() const { return rndv; }
 	shared_ptr<CTypedPipe<Cmd>> getAttendentPipe() const { return attendentPipe; }
 
-	shared_ptr<CMutex> getPumpDpDataMutex(int n) const { return pumpDpDataMutexes[n]; }
+	auto getPumpDpDataMutex(int n) const { return pumpDpDataMutexes[n]; }
 	shared_ptr<CustomerRecord> getPumpDpDataPtr(int n) const { return pumpDpDataPtrs[n]; }
 
 	shared_ptr<CSemaphore> getProducer(int n) const { return producers[n]; }

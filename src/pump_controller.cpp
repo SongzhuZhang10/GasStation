@@ -21,10 +21,10 @@ PumpController::readData()
 	
 	producer->Wait();
 
-	mutex->Wait();
+	mutex->WaitToRead();
 	data = *dpData;
 	assert(data == *dpData);
-	mutex->Signal();
+	mutex->DoneReading();
 
 	consumer->Signal();
 	
@@ -33,13 +33,11 @@ PumpController::readData()
 void
 PumpController::archiveData()
 {
-
-
-	mutex->Wait();
 	data.txnStatus = TxnStatus::Archived;
-	mutex->Signal();
-
+	
+	mutex->WaitToWrite();
 	dpData->txnStatus = data.txnStatus;
+	mutex->DoneWriting();
 
 	
 }
@@ -47,9 +45,7 @@ PumpController::archiveData()
 CustomerRecord
 PumpController::getData() const
 {
-	mutex->Wait();
 	CustomerRecord temp = data;
-	mutex->Signal();
 
 	return temp;
 }
@@ -61,12 +57,7 @@ PumpController::printPumpData()
 		return;
 	}
 	else {
-		// Must use mutex to protect `data` so that it is not written while being read. 
-		mutex->Wait();
 		prev_data = data;
-		assert(data == prev_data);
-		mutex->Signal();
-
 		printPumpStatus(prev_data);
 	}
 }
@@ -105,7 +96,5 @@ PumpController::printPumpStatus(const CustomerRecord& record) const
 	}
 	cout << "---------------------------------------------\n";
 	cout << "\n";
-	fflush(stdout);
 	windowMutex->Signal();
-	SLEEP(500);
 }

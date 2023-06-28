@@ -43,7 +43,7 @@ private:
 	shared_ptr<CMutex> windowMutex;
 
 	// to protect data pointer pointing to the data in the pump data pool
-	shared_ptr<CMutex> pumpDpMutex;
+	shared_ptr<CReadersWritersMutex> pumpDpMutex;
 
 	string getRandomName();
 	string getRandomCreditCardNumber();

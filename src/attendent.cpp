@@ -15,16 +15,16 @@ Attendent::Attendent()
 bool
 Attendent::approveTxn(int idx)
 {
-	pumpMutex[idx]->Wait();
+	pumpMutex[idx]->WaitToRead();
 	pumpData[idx] = *pumpDpData[idx];
-	pumpMutex[idx]->Signal();
+	pumpMutex[idx]->DoneReading();
 
 	if (pumpData[idx].txnStatus == TxnStatus::Pending && pumpData[idx].name != "___Unknown___") {
 		
-		pumpMutex[idx]->Wait();
+		pumpMutex[idx]->WaitToWrite();
 		pumpDpData[idx]->txnStatus = TxnStatus::Approved;
 		assert(pumpDpData[idx]->txnStatus == TxnStatus::Approved);
-		pumpMutex[idx]->Signal();
+		pumpMutex[idx]->DoneWriting();
 		
 		txnApprovedEvent[idx]->Signal(); // Trigger the event in `waitForAuth` in `pump.cpp`
 

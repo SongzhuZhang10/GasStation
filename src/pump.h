@@ -17,7 +17,7 @@ private:
 
 	shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool
-	shared_ptr<CMutex> dpMutex;
+	shared_ptr<CReadersWritersMutex> dpMutex;
 
 	shared_ptr<CTypedPipe<CustomerRecord>> pipe;
 

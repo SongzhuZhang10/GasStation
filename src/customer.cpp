@@ -87,10 +87,10 @@ Customer::getFuel()
     status = CustomerStatus::GetFuel;
 
     do {
-        pumpDpMutex->Wait();
+        pumpDpMutex->WaitToRead();
         data.receivedVolume = pumps_[pumpId]->getReceivedVolume();
         data.cost = pumps_[pumpId]->getCost();
-        pumpDpMutex->Signal();
+        pumpDpMutex->DoneReading();
     } while (data.receivedVolume < data.requestedVolume);
 }
 

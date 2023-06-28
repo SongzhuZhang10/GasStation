@@ -15,7 +15,7 @@ private:
 	CustomerRecord data;
 	CustomerRecord prev_data;
 
-	shared_ptr<CMutex> mutex;
+	shared_ptr<CReadersWritersMutex> mutex;
 	shared_ptr<CMutex> windowMutex;
 
 	shared_ptr<CustomerRecord> dpData;

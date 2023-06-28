@@ -7,7 +7,7 @@
 class Attendent
 {
 private:
-	vector<shared_ptr<CMutex>> pumpMutex;
+	vector<shared_ptr<CReadersWritersMutex>> pumpMutex;
 	vector<shared_ptr<CustomerRecord>> pumpDpData;
 
 	vector<shared_ptr<CEvent>> txnApprovedEvent;

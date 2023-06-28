@@ -34,11 +34,11 @@ Pump::Pump(int id, vector<unique_ptr<FuelTank>>& tanks) : id_(id), tanks_(tanks)
 	  an exception in the memcpy.asm file will be induced.
 	 */
 	do {
-		dpMutex->Wait();
+		dpMutex->WaitToWrite();
 
 		*data = customer;
 
-		dpMutex->Signal();
+		dpMutex->DoneWriting();
 	} while (*data != customer);
 	assert(customer.txnStatus == TxnStatus::Pending);
 }
@@ -48,10 +48,10 @@ Pump::sendTransactionInfo()
 {
 	consumer->Wait();
 
-	dpMutex->Wait();
+	dpMutex->WaitToWrite();
 	*data = customer;
 	assert(*data == customer);
-	dpMutex->Signal();
+	dpMutex->DoneWriting();
 	
 	producer->Signal();
 }
@@ -138,16 +138,11 @@ Pump::readPipe()
 	 * This is why `data->creditCardNumber = customer.creditCardNumber;` later on can cause
 	 * the memcpy exception.
 	 */
-	if (customer.txnStatus != TxnStatus::Pending)
-		cout << "DEBUG before reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
 	// This pump has arrived at Rendezvous and is about to read the pipe ...
 	rendezvousOnce();
 
 	pipe->Read(&customer);
-
-	if (customer.txnStatus != TxnStatus::Pending)
-		cout << "DEBUG after reading pipe: customer.txnStatus = " << txnStatusToString(customer.txnStatus) << endl;
 
 	assert(customer.txnStatus == TxnStatus::Pending);
 }
@@ -159,11 +154,10 @@ Pump::waitForAuth()
 
 	txnApprovedEvent->Wait();
 
-	dpMutex->Wait();
+	dpMutex->WaitToRead();
 	assert(data->txnStatus == TxnStatus::Approved);
 	customer.txnStatus = data->txnStatus;
-	dpMutex->Signal();
-
+	dpMutex->DoneReading();
 }
 
 int
