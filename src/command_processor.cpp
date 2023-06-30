@@ -31,12 +31,16 @@ CommandProcessor::CommandProcessor()
 
 void CommandProcessor::openPump(int n)
 {
+
     {
+#if DISPLAY_OUTPUT
         std::lock_guard<std::mutex> lock(outputMutex); // Lock acquired
         // Critical section
         std::cout << "Opening pump " << n << " ..." << std::endl;
+#endif
         attendent->approveTxn(n); // execute a command
     } // Lock released here
+
 
     std::lock_guard<std::mutex> lock(commandMutex);
     commandCompleted = true;
@@ -54,12 +58,14 @@ void CommandProcessor::openPump(int n)
 void CommandProcessor::printTxn()
 {
     {
-        // TODO: How does this work?
+#if DISPLAY_OUTPUT
         std::lock_guard<std::mutex> lock(outputMutex);
         std::cout << "Printing transaction ..." << std::endl;
+#endif
         attendent->printTxns();
         
     }
+
 
     std::lock_guard<std::mutex> lock(commandMutex);
     commandCompleted = true;
@@ -69,8 +75,10 @@ void CommandProcessor::printTxn()
 void CommandProcessor::refillTank(int n)
 {
     {
+#if DISPLAY_OUTPUT
         std::lock_guard<std::mutex> lock(outputMutex);
         std::cout << "Refilling the tank ..." << std::endl;
+#endif
         attendent->refillTank(n);
     }
 
@@ -120,14 +128,36 @@ void CommandProcessor::run()
         commandCompleted = false; // Set to false before starting next command
 
         lock.unlock(); // This allows other threads to lock the mutex.
-
+#if DISPLAY_OUTPUT
         {
             std::lock_guard<std::mutex> lock(outputMutex);
             std::cout << "[Command]: ";
         }
+#endif
+#if !DISPLAY_OUTPUT
+        char c;
+        while (true) {
+#ifdef _WIN32
+            c = _getch();
+#else
+            struct termios old_t, new_t;
+            tcgetattr(STDIN_FILENO, &old_t); // get current terminal info
+            new_t = old_t;
+            new_t.c_lflag &= ~ECHO; // disable echo
+            tcsetattr(STDIN_FILENO, TCSANOW, &new_t); // apply new terminal settings
+            c = getchar();
+            tcsetattr(STDIN_FILENO, TCSANOW, &old_t); // restore old terminal settings
+#endif
 
+            if (c == '\n' || c == '\r') {
+                std::cout << std::endl;
+                break;
+            }
+            input.push_back(c);
+        }
+#elif
         std::getline(std::cin, input);
-
+#endif
         // Check if the input string is too short
         if (input.size() < 2) {
             std::cout << "Please enter a valid command.\n";

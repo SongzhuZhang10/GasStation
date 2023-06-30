@@ -9,6 +9,15 @@
 #include <set>
 #include "attendent.h"
 
+#ifdef _WIN32
+#include <conio.h>
+#else
+#include <termios.h>
+#include <unistd.h>
+#endif
+
+#define DISPLAY_OUTPUT 0
+
 class CommandProcessor {
 private:
     // Map from commands to functions
