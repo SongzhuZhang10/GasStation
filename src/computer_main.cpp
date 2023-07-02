@@ -15,7 +15,7 @@ int main(void) {
 	CThread printTxnHistoryThread(printTxnHistory, ACTIVE, NULL);
 	
 	printTxnHistoryThread.WaitForThread();
-
+	
 	exitComputer();
 
 	std::cout << "Press Enter to terminate the Computer process." << std::endl;

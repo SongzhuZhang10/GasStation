@@ -1,3 +1,4 @@
+#include "fuel_price.h"
 #include "computer.h"
 #include "pump_controller.h"
 

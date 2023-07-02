@@ -13,7 +13,6 @@ private:
 	int id_;
 	bool busy;
 	std::string name;
-	FuelPrice price;
 
 	std::shared_ptr<CustomerRecord> data;
 	// to protect data pointer pointing to the data in the pump data pool
@@ -51,6 +50,6 @@ public:
 	bool isBusy();
 	int getId();
 	float getReceivedVolume();
-	float getCost();
+	float getTotalCost();
 };
 #endif // __PUMP_H__

@@ -1,6 +1,10 @@
 #include "pump_facility.h"
+#include "command_processor.h"
+#include <iomanip> // Required for std::setw()
 
 using namespace std;
+
+static FuelPrice fuelPrice;
 
 /**
  * Plan: incorperate the four tanks inside the pump facility which is the top level.
@@ -45,11 +49,25 @@ setupPumpFacility()
 
 /***********************************************
  *                                             *
+ *                Command Processor            *
+ *                                             *
+ ***********************************************/
+CommandProcessor cmdProcessor(fuelPrice, pumps);
+
+UINT __stdcall
+runCommandProcessor(void* args)
+{
+	cmdProcessor.run();
+	return 0;
+}
+
+/***********************************************
+ *                                             *
  *                Customers                    *
  *                                             *
  ***********************************************/
 
-vector<unique_ptr<Customer>> customers;
+//vector<unique_ptr<Customer>> customers;
 shared_ptr<CRendezvous> rndv = sharedResources.getRndv();
 
 UINT __stdcall printCustomers(void* args)
@@ -57,29 +75,60 @@ UINT __stdcall printCustomers(void* args)
 	windowMutex->Wait();
 	MOVE_CURSOR(0, 0);
 	std::cout << "--------------------------------------------------------------------------------" << std::endl;
+	std::cout << "                   Welcome to Gas Station Control Panel                         " << std::endl;
+	std::cout << "--------------------------------------------------------------------------------" << std::endl;
+	std::cout << "Supported commands:" << std::endl;
+
+	// Set the width for the command and description columns
+	const int commandWidth = 10;
+	const int descriptionWidth = 25;
+
+	// Set the left alignment for the columns
+	std::cout << std::left << std::setw(commandWidth) << "- gc#:";
+	std::cout << std::setw(descriptionWidth) << "Generate # number of customers" << std::endl;
+
+	std::cout << std::left << std::setw(commandWidth) << "- op#";
+	std::cout << std::setw(descriptionWidth) << "Authorize the transaction at pump # by opening that pump" << std::endl;
+
+	std::cout << std::left << std::setw(commandWidth) << "- cp# #:";
+	std::cout << std::setw(descriptionWidth) << "Change the unit price of fuel grade # to the price specified by #" << std::endl;
+
+	std::cout << std::left << std::setw(commandWidth) << "- pt:";
+	std::cout << std::setw(descriptionWidth) << "Print transaction history" << std::endl;
+
+
+	std::cout << "\n";
+	
+
+	std::cout << "--------------------------------------------------------------------------------" << std::endl;
 	std::cout << "                           Customer Information                                 " << std::endl;
 	std::cout << "--------------------------------------------------------------------------------" << std::endl;
-	fflush(stdout);
 	windowMutex->Signal();
 
+	static size_t num_customers = 0;
+
 	while (true) {
-		for (size_t i = 0; i < customers.size(); ++i) {
-			printCustomerRecord(i);
+		num_customers = cmdProcessor.getCustomers().size();
+		for (size_t i = 0; i < num_customers; ++i) {
+			printCustomerRecord(i, cmdProcessor.getCustomers());
 		}
 	}
 }
 
 
 void
-printCustomerRecord(int idx)
+printCustomerRecord(int idx, vector<unique_ptr<Customer>>& customers)
 {
 	const int block_height = 13;
-	static vector<CustomerRecord> prev_records(NUM_CUSTOMERS); // declare a vector with a size of `NUM_CUSTOMERS`
-	static vector<string> prev_statuses(NUM_CUSTOMERS, "Null"); // declare a vector with a size of `NUM_CUSTOMERS`, initialized with value "Null"
-	static vector<CustomerRecord> records(NUM_CUSTOMERS);
+	static vector<CustomerRecord> prev_records(MAX_NUM_CUSTOMERS); // declare a vector with a size of `MAX_NUM_CUSTOMERS`
+	static vector<string> prev_statuses(MAX_NUM_CUSTOMERS, "Null"); // declare a vector with a size of `MAX_NUM_CUSTOMERS`, initialized with value "Null"
+	static vector<CustomerRecord> records(MAX_NUM_CUSTOMERS);
 
 	records[idx] = customers[idx]->getData();
-#
+
+	if (customers[idx]->getStatusString() == "Null")
+		return;
+
 	if (prev_records[idx] == records[idx] && prev_statuses[idx] == customers[idx]->getStatusString()) {
 		return;
 	}
@@ -112,7 +161,6 @@ void
 runPumpFacility()
 {
 	CThread printCustomersThread(printCustomers, ACTIVE, NULL);
-
 	/**
 	 * It is absolutely necessary to ensure that the pumpController are created, initialized and ready to
 	 * read the pump before generating any customer. This is to avoid race condition where custmers
@@ -121,12 +169,10 @@ runPumpFacility()
 	 */
 	rndv->Wait();
 
-	for (int i = 0; i < NUM_CUSTOMERS; i++) {
-		customers.emplace_back(make_unique<Customer>(pumps));
-		customers[i]->Resume();
-	}
+	CThread runCommandProcessorThread(runCommandProcessor, ACTIVE, NULL);
 
 	printCustomersThread.WaitForThread();
+	runCommandProcessorThread.WaitForThread();
 	cout << "Press Enter to terminate the Customer process." << endl;
 	waitForKeyPress();
 }

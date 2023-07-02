@@ -39,10 +39,10 @@ void setupPumpFacility();
 UINT __stdcall printCustomers(void* args);
 
 
-void printCustomerRecord(int idx);
+void printCustomerRecord(int idx, std::vector<std::unique_ptr<Customer>>& customers);
 
 
-
+UINT __stdcall runCommandProcessor(void* args);
 
 void runPumpFacility();
 

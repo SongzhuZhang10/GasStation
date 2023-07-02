@@ -65,7 +65,7 @@ Pump::getReceivedVolume()
 }
 
 float
-Pump::getCost()
+Pump::getTotalCost()
 {
 	return data->cost;
 }
@@ -94,7 +94,8 @@ Pump::getFuel()
 			do {
 				if (chosen_tank.decrement()) {
 					customer.receivedVolume += FLOW_RATE;
-					customer.cost = price.getCost(customer.receivedVolume, customer.grade);
+					//customer.cost = fuelPrice_.getTotalCost(customer.receivedVolume, customer.grade);
+					customer.cost = customer.receivedVolume * customer.unitCost;
 					sendTransactionInfo();
 				}
 			} while (customer.receivedVolume < customer.requestedVolume && chosen_tank.checkRemainingVolume());

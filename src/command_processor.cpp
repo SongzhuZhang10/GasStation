@@ -5,7 +5,10 @@
 
 using namespace std;
 
-CommandProcessor::CommandProcessor()
+#define DISPLAY_OUTPUT 0
+
+CommandProcessor::CommandProcessor(FuelPrice& fuelPrice, vector<unique_ptr<Pump>>& pumps)
+    : fuelPrice_(fuelPrice), pumps_(pumps)
 {
     /**
      * This line adds an entry to the map. The key is the string `"OP"`, and
@@ -18,18 +21,29 @@ CommandProcessor::CommandProcessor()
      */
     command_map_int["OP"] = [this](int n) { this->openPump(n); };
 
-
     command_map_int["RF"] = [this](int n) { this->refillTank(n); };
 
+    command_map_int["GC"] = [this](int n) { this->generateCustomers(n); };
+
     command_map_void["PT"] = [this]() { this->printTxn(); };
+
+    command_map_int_float["CP"] = [this](int grade, float price) { this->changeUnitPrice(grade, price); };
    
     commands_with_int.insert("OP");
     commands_with_int.insert("RF");
+    commands_with_int.insert("GC");
+
+    commands_with_int_float.insert("CP");
 
     attendent = make_unique<Attendent>();
+
+    for (int i = 0; i < MAX_NUM_CUSTOMERS; i++) {
+        customers.emplace_back(make_unique<Customer>(pumps_, fuelPrice_));
+    }
 }
 
-void CommandProcessor::openPump(int n)
+void
+CommandProcessor::openPump(int n)
 {
 
     {
@@ -55,7 +69,38 @@ void CommandProcessor::openPump(int n)
     cv.notify_one();
 }
 
-void CommandProcessor::printTxn()
+void
+CommandProcessor::generateCustomers(int n)
+{
+    static int i = 0;
+    static int max_count = 0;
+    {
+#if DISPLAY_OUTPUT
+        std::lock_guard<std::mutex> lock(outputMutex);
+        std::cout << "Generating " << n << " customers ..." << std::endl;
+#endif
+        max_count += n;
+        for (; i < max_count; i++) {
+            if (i > MAX_NUM_CUSTOMERS)
+                cerr << "Error: Exceeded maximum number of customers" << endl;
+            else
+                customers[i]->Resume();
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(commandMutex);
+    commandCompleted = true;
+    cv.notify_one();
+}
+
+vector<unique_ptr<Customer>>&
+CommandProcessor::getCustomers()
+{
+    return customers;
+}
+
+void
+CommandProcessor::printTxn()
 {
     {
 #if DISPLAY_OUTPUT
@@ -63,16 +108,15 @@ void CommandProcessor::printTxn()
         std::cout << "Printing transaction ..." << std::endl;
 #endif
         attendent->printTxns();
-        
     }
-
 
     std::lock_guard<std::mutex> lock(commandMutex);
     commandCompleted = true;
     cv.notify_one();
 }
 
-void CommandProcessor::refillTank(int n)
+void
+CommandProcessor::refillTank(int n)
 {
     {
 #if DISPLAY_OUTPUT
@@ -87,12 +131,31 @@ void CommandProcessor::refillTank(int n)
     cv.notify_one();
 }
 
-void CommandProcessor::run()
+void
+CommandProcessor::changeUnitPrice(int grade, float price)
+{
+    {
+#if DISPLAY_OUTPUT
+        std::lock_guard<std::mutex> lock(outputMutex);
+        std::cout << "Changing the unit price of " << fuelGradeToString(intToFuelGrade(grade)) << " to " << price << " per liter." << std::endl;
+#endif
+        fuelPrice_.setFuelPrice(intToFuelGrade(grade), price);
+    }
+
+    std::lock_guard<std::mutex> lock(commandMutex);
+    commandCompleted = true;
+    cv.notify_one();
+}
+
+void
+CommandProcessor::run()
 {
     while (true) {
         std::string input, command;
         int number = 0;
 
+        int grade = -1;
+        float price = 0.0f;
         /**
          * `lock` is an instance (a variable) of `std::unique_lock<std::mutex>`.
          * This lock automatically locks the mutex `commandMutex` when it is created
@@ -134,7 +197,7 @@ void CommandProcessor::run()
             std::cout << "[Command]: ";
         }
 #endif
-#if !DISPLAY_OUTPUT
+
         char c;
         while (true) {
 #ifdef _WIN32
@@ -155,12 +218,12 @@ void CommandProcessor::run()
             }
             input.push_back(c);
         }
-#elif
-        std::getline(std::cin, input);
-#endif
+
         // Check if the input string is too short
         if (input.size() < 2) {
-            std::cout << "Please enter a valid command.\n";
+#if DISPLAY_OUTPUT
+            std::cout << "Invalid command size.\n";
+#endif
             commandCompleted = true;
             continue;
         }
@@ -197,7 +260,9 @@ void CommandProcessor::run()
         // Check if the command exists in our command map
         if (commands_with_int.find(command) != commands_with_int.end()) {
             if (input.size() < 3) {
+#if DISPLAY_OUTPUT
                 std::cout << "This command requires a number.\n";
+#endif
                 commandCompleted = true;
                 continue;
             }
@@ -222,13 +287,64 @@ void CommandProcessor::run()
              * condition will be true if the extraction was successful.
              */
             if (!(ss >> number)) {
-                std::cout << "Please enter a command followed by an integer number.\n";
+#if DISPLAY_OUTPUT
+                std::cout << "Command should be followed by an integer number.\n";
+#endif
                 commandCompleted = true;
                 continue;
             }
 
-            if (number < 0 || number > 3) {
-                std::cout << "Please enter a number that is in the range of 0 to " << NUM_PUMPS - 1 << ".\n";
+            // For generating customers command, the number can be greater than 4.
+            if (command != "GC" && (number < 0 || number > 3)) {
+#if DISPLAY_OUTPUT
+                std::cout << "Number must be the range of 0 to " << NUM_PUMPS - 1 << ".\n";
+#endif
+                commandCompleted = true;
+                continue;
+            }
+
+            if (command == "GC" && number < 1) {
+#if DISPLAY_OUTPUT
+                std::cout << "At least one customer must be generated each time.\n";
+#endif
+                commandCompleted = true;
+                continue;
+            }
+        }
+        else if (commands_with_int_float.find(command) != commands_with_int_float.end()) {
+            std::size_t found = input.find(' ');
+            if (found == std::string::npos) {
+#if DISPLAY_OUTPUT
+                std::cout << "Please enter a command followed by an integer and a float number separated by a space.\n";
+#endif
+                commandCompleted = true;
+                continue;
+            }
+
+            std::stringstream ss(input.substr(2));
+            /**
+             * `>> grade >> price`: This attempts to extract values from the stringstream into the variables `grade` and `price`.
+             * The >> operator first tries to convert the next sequence of characters that could represent an int into an int
+             * value and store it into `grade`. Then it does the same for a float value and stores it into `price`.
+             * `if (!(ss >> grade >> price))`: This is checking whether the extraction operation was successful for both `grade`
+             * and `price`. If the operation fails (for example, because the next sequence of characters can't be converted into
+             * an int or a float, or because there aren't enough values left), then ss will be in a "fail" state, and when it's
+             * used in a boolean context (like in an if statement), it will evaluate to false.
+             */
+            if (!(ss >> grade >> price)) {
+#if DISPLAY_OUTPUT
+                std::cout << "The command must be followed by an integer and a float number.\n";
+                std::cout << "Grade = " << grade << "       Price = " << price << std::endl;
+#endif
+                commandCompleted = true;
+                continue;
+            }
+
+            if (grade < 0 || grade > 3) {
+#if DISPLAY_OUTPUT
+                std::cout << "Fuel grade must be an integer in the range of 0 to 3.\n";
+#endif
+                //assert(grade >= 0 && grade <= 3 && price >= 0);
                 commandCompleted = true;
                 continue;
             }
@@ -247,8 +363,15 @@ void CommandProcessor::run()
             std::thread t(command_map_void[command]);
             t.detach();
         }
+        else if (command_map_int_float.find(command) != command_map_int_float.end()) {
+            std::thread t(command_map_int_float[command], grade, price);
+            t.detach();
+        }
+
         else {
+#if DISPLAY_OUTPUT
             std::cout << "Invalid command entered\n";
+#endif
             commandCompleted = true;
         }
     }

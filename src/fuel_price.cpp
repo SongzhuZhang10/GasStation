@@ -3,7 +3,7 @@
 using namespace std;
 
 optional<float>
-FuelPrice::getFuelPrice(FuelGrade grade)
+FuelPrice::findFuelPrice(FuelGrade grade)
 {
 	if (fuelData.find(grade) != fuelData.end()) {
 		return fuelData[grade]; // Error occurs here if `const` is used for this function
@@ -27,10 +27,10 @@ FuelPrice::setFuelPrice(FuelGrade grade, float price)
 }
 
 float
-FuelPrice::getCost(float volume, FuelGrade grade)
+FuelPrice::getTotalCost(float volume, FuelGrade grade)
 {
 	float cost = 0;
-	auto fuel_price = getFuelPrice(grade);
+	auto fuel_price = findFuelPrice(grade);
 	if (fuel_price.has_value()) {
 		if (*fuel_price > 0 && volume > 0) {
 			// Access the value inside the optional using the * operator
@@ -46,7 +46,7 @@ FuelPrice::getCost(float volume, FuelGrade grade)
 float
 FuelPrice::getUnitCost(FuelGrade grade)
 {
-	optional<float> unit_cost = getFuelPrice(grade);
+	optional<float> unit_cost = findFuelPrice(grade);
 	if (unit_cost) {
 		return  *unit_cost;
 	}

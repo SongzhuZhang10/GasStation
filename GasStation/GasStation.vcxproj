@@ -134,6 +134,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\attendent.cpp" />
+    <ClCompile Include="..\src\command_processor.cpp" />
     <ClCompile Include="..\src\common.cpp" />
     <ClCompile Include="..\src\customer.cpp" />
     <ClCompile Include="..\src\fuel_price.cpp" />
@@ -145,6 +147,8 @@
     <ClCompile Include="..\src\pump_facility_main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\attendent.h" />
+    <ClInclude Include="..\src\command_processor.h" />
     <ClInclude Include="..\src\common.h" />
     <ClInclude Include="..\src\customer.h" />
     <ClInclude Include="..\src\fuel_price.h" />

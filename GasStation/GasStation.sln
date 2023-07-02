@@ -10,12 +10,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Computer", "..\Computer\Com
 		{07C82745-EDD5-405B-BB5B-538FF8082096} = {07C82745-EDD5-405B-BB5B-538FF8082096}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CommandProcessor", "..\CommandProcessor\CommandProcessor.vcxproj", "{07DB8086-38F0-44C4-BBBE-74A1A078103C}"
-	ProjectSection(ProjectDependencies) = postProject
-		{07C82745-EDD5-405B-BB5B-538FF8082096} = {07C82745-EDD5-405B-BB5B-538FF8082096}
-		{CB742B7E-53EC-4174-B71B-59EF14698878} = {CB742B7E-53EC-4174-B71B-59EF14698878}
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -40,14 +34,6 @@ Global
 		{CB742B7E-53EC-4174-B71B-59EF14698878}.Release|x64.Build.0 = Release|x64
 		{CB742B7E-53EC-4174-B71B-59EF14698878}.Release|x86.ActiveCfg = Release|Win32
 		{CB742B7E-53EC-4174-B71B-59EF14698878}.Release|x86.Build.0 = Release|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Debug|x64.ActiveCfg = Debug|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Debug|x64.Build.0 = Debug|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Debug|x86.ActiveCfg = Debug|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Debug|x86.Build.0 = Debug|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Release|x64.ActiveCfg = Release|x64
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Release|x64.Build.0 = Release|x64
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Release|x86.ActiveCfg = Release|Win32
-		{07DB8086-38F0-44C4-BBBE-74A1A078103C}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

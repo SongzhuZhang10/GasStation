@@ -33,7 +33,7 @@
 const int NUM_TANKS = 4;
 const int NUM_PUMPS = 4;
 
-const int NUM_CUSTOMERS = 8;
+const int MAX_NUM_CUSTOMERS = 25;
 
 const float TANK_CAPACITY = 500.0f;
 const float FLOW_RATE = 5.0f;
@@ -43,7 +43,7 @@ constexpr int TANK_UI_POSITION = 5;
 constexpr int PUMP_STATUS_POSITION = TANK_UI_POSITION + 6;
 constexpr int TXN_LIST_POSITION = PUMP_STATUS_POSITION + 50;
 
-const int CUSTOMER_STATUS_POSITION = 4;
+const int CUSTOMER_STATUS_POSITION = 12;
 
 /*
 	0 - Black

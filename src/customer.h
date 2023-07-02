@@ -30,7 +30,7 @@ private:
 
 	CustomerRecord data;
 
-	FuelPrice price;
+	FuelPrice& fuelPrice_;
 
 	std::vector<std::shared_ptr<CEvent>> txnApprovedEvent;
 
@@ -65,7 +65,7 @@ private:
 	int main(void); 
 
 public:
-	Customer(std::vector<std::unique_ptr<Pump>>& pumps);
+	Customer(std::vector<std::unique_ptr<Pump>>& pumps, FuelPrice& fuelPrice);
 	CustomerRecord& getData();
 	std::string getStatusString();
 

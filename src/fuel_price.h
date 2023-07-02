@@ -10,7 +10,7 @@ private:
 	// Unordered map to hold FuelGrade -> float mappings
 	std::unordered_map<FuelGrade, float> fuelData;
 	// Function to get the float value associated with a FuelGrade
-	std::optional<float> getFuelPrice(FuelGrade grade);
+	std::optional<float> findFuelPrice(FuelGrade grade);
 
 public:
 	FuelPrice()
@@ -26,7 +26,7 @@ public:
 	// Function to set the float value associated with a FuelGrade
 	void setFuelPrice(FuelGrade grade, float price);
 
-	float getCost(float volume, FuelGrade grade);
+	float getTotalCost(float volume, FuelGrade grade);
 
 	float getUnitCost(FuelGrade grade);
 };

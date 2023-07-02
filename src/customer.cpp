@@ -11,7 +11,8 @@ constexpr int MAX_LITERS = 70;
 /*
 * Receive fuel should not happen after returning the pump hose. Need to fix this.
 */
-Customer::Customer(vector<unique_ptr<Pump>>& pumps) : pumpId(-1), pumps_(pumps)
+Customer::Customer(vector<unique_ptr<Pump>>& pumps, FuelPrice& fuelPrice)
+    : pumpId(-1), pumps_(pumps), fuelPrice_(fuelPrice)
 {
     windowMutex = sharedResources.getPumpWindowMutex();
     pipe = sharedResources.getPumpPipeVec();
@@ -27,7 +28,6 @@ Customer::Customer(vector<unique_ptr<Pump>>& pumps) : pumpId(-1), pumps_(pumps)
 int
 Customer::getAvailPumpId()
 {
-    status = CustomerStatus::WaitForPump;
     while (true) {
         pumpEnquiryMutex->Wait();
         for (int i = 0; i < NUM_PUMPS; i++) {
@@ -47,6 +47,8 @@ Customer::getAvailPumpId()
 void
 Customer::arriveAtPump()
 {
+    status = CustomerStatus::WaitForPump;
+
     pumpId = getAvailPumpId();
 
     pumpDpMutex = sharedResources.getPumpDpDataMutex(pumpId);
@@ -71,12 +73,13 @@ void
 Customer::selectFuelGrade()
 {
     data.grade = getRandomFuelGrade();
+    //data.grade = FuelGrade::Oct87;
 
     status = CustomerStatus::SelectFuelGrade;
     
     assert(fuelGradeToInt(data.grade) >= 0 && fuelGradeToInt(data.grade) <= 3);
 
-    data.unitCost = price.getUnitCost(data.grade);
+    data.unitCost = fuelPrice_.getUnitCost(data.grade);
 
     writePipe(&data);
 }
@@ -93,7 +96,7 @@ Customer::getFuel()
     do {
         pumpDpMutex->WaitToRead();
         data.receivedVolume = pumps_[pumpId]->getReceivedVolume();
-        data.cost = pumps_[pumpId]->getCost();
+        data.cost = pumps_[pumpId]->getTotalCost();
         pumpDpMutex->DoneReading();
     } while (data.receivedVolume < data.requestedVolume);
 }
