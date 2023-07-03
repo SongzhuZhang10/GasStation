@@ -22,13 +22,18 @@
 #include <cassert>
 #include <iomanip>
 #include <string>
-#include <cmath> // for std::fabs
+#include <cmath>	// for std::fabs
 #include <thread>
 #include "rt.h"
 #include <cassert>
 #include <random>
 #include <optional>
 #include <unordered_map>
+
+// For storing and printing timestamps
+#include <iomanip>	// for input/output manipulations
+#include <chrono>	// for time utilities
+#include <ctime>	//for converting time to a string.
 
 const int NUM_TANKS = 4;
 const int NUM_PUMPS = 4;
@@ -68,6 +73,10 @@ const int GREEN = 10;
 const int CYAN = 11;
 const int RED = 12;
 const int WHITE = 15;
+
+std::tm getTimestamp();
+
+void printTimestamp(std::tm now_tm);
 
 // You don't need operator overloading for comparing enum class instances.
 enum class FuelGrade
@@ -112,6 +121,7 @@ struct CustomerRecord
 	float cost;
 	int pumpId;
 	TxnStatus txnStatus;
+	std::tm nowTime;
 
 	// Default member initializer
 	CustomerRecord() :
@@ -128,6 +138,11 @@ struct CustomerRecord
 		// so far, the number of characters in any string cannot exceed 15. Or, the program fails.
 		creditCardNumber = "0000 0000 0000";
 		name = "___Unknown___";
+		nowTime.tm_year = 0; // year 1900, because tm_year is years since 1900
+
+		// Important: ensure that the time is valid. The `mktime` function
+		// normalizes the tm structure.
+		std::mktime(&nowTime);
 	}
 
 	void resetToDefault()
@@ -142,6 +157,9 @@ struct CustomerRecord
 
 		creditCardNumber = "0000 0000 0000";
 		name = "___Unknown___";
+
+		nowTime.tm_year = 0;
+		std::mktime(&nowTime);
 	}
 
 	// overload the `operator==` to provide a more natural way to compare two instances of the struct.
@@ -156,7 +174,8 @@ struct CustomerRecord
 				std::fabs(unitCost - other.unitCost) < epsilon &&
 				std::fabs(cost - other.cost) < epsilon &&
 				pumpId == other.pumpId &&
-				txnStatus == other.txnStatus;
+				txnStatus == other.txnStatus &&
+				nowTime.tm_year == other.nowTime.tm_year;
 	}
 
 	bool operator!=(const CustomerRecord& other) const
@@ -170,7 +189,8 @@ struct CustomerRecord
 				std::fabs(unitCost - other.unitCost) > epsilon ||
 				std::fabs(cost - other.cost) > epsilon ||
 				pumpId != other.pumpId ||
-				txnStatus != other.txnStatus;
+				txnStatus != other.txnStatus ||
+				nowTime.tm_year != other.nowTime.tm_year;
 	}
 #if 0
 	// Overloading assignment operator

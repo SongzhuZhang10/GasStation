@@ -28,6 +28,8 @@ public:
 	void printPumpStatus(const CustomerRecord& record) const;
 	void readData();
 	void archiveData();
+	void addTimestamp();
+
 	CustomerRecord getData() const;
 };
 

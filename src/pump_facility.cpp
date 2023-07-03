@@ -149,6 +149,14 @@ printCustomerRecord(int idx, vector<unique_ptr<Customer>>& customers)
 		std::cout << "Status:                    " << customers[idx]->getStatusString() << "                        " << "\n";
 		TEXT_COLOUR();
 		std::cout << "Pump ID:                   " << records[idx].pumpId << "                        " << "\n";
+		if (records[idx].nowTime.tm_year == 0) {
+			std::cout << "Time:                                              " << "\n";
+		}
+		else {
+			std::cout << "Time:                      ";
+			printTimestamp(records[idx].nowTime);
+		}
+
 		std::cout << "---------------------------------------------\n";
 		std::cout << "\n";
 		windowMutex->Signal();

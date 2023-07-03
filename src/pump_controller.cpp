@@ -39,9 +39,16 @@ PumpController::archiveData()
 	
 	mutex->WaitToWrite();
 	dpData->txnStatus = data.txnStatus;
-	mutex->DoneWriting();
+	mutex->DoneWriting();	
+}
 
-	
+void
+PumpController::addTimestamp()
+{
+	mutex->WaitToWrite();
+	data.nowTime = getTimestamp();
+	dpData->nowTime = data.nowTime;
+	mutex->DoneWriting();
 }
 
 CustomerRecord

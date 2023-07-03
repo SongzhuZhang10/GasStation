@@ -99,6 +99,8 @@ Customer::getFuel()
         data.cost = pumps_[pumpId]->getTotalCost();
         pumpDpMutex->DoneReading();
     } while (data.receivedVolume < data.requestedVolume);
+
+    data.nowTime = getTimestamp();
 }
 
 void

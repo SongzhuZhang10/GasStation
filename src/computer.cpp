@@ -45,7 +45,7 @@ TxnListPrinter::printNew()
 {
 	static int count = 0;
 	static size_t last_size = 0;
-	const int offset = 11;
+	const int offset = 12;
 	
 	txnListMutex->Wait();
 	if (lst->size() == 0)
@@ -136,6 +136,13 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 		cout << "Total Cost ($):            " << record.cost                         << "          " << "\n";
 		cout << "Transaction Status:        " << txnStatusToString(record.txnStatus) << "          " << "\n";
 		cout << "Pump ID:                   " << record.pumpId                       << "          " << "\n";
+		if (record.nowTime.tm_year == 0) {
+			cout << "Time:                                              " << "\n";
+		}
+		else {
+			cout << "Time:                      ";
+			printTimestamp(record.nowTime);
+		}
 	}
 	cout << "----------------------------------------------------\n";
 	cout << "\n";
@@ -145,6 +152,7 @@ printTxn(const CustomerRecord& record, int position, int txn_id)
 void
 writeTxnToPipe(const unique_ptr<PumpController>& pump_ctrl)
 {
+	pump_ctrl->addTimestamp();
 
 	CustomerRecord txn = pump_ctrl->getData();
 
