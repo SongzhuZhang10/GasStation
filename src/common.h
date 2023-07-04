@@ -192,26 +192,6 @@ struct CustomerRecord
 				txnStatus != other.txnStatus ||
 				nowTime.tm_year != other.nowTime.tm_year;
 	}
-#if 0
-	// Overloading assignment operator
-	CustomerRecord& operator=(const CustomerRecord& other)
-	{
-		// Check for self-assignment
-		if (this != &other) {
-			// Deep copy
-			name = other.name;
-			creditCardNumber = other.creditCardNumber;
-			grade = other.grade;
-			requestedVolume = other.requestedVolume;
-			receivedVolume = other.receivedVolume;
-			unitCost = other.unitCost;
-			cost = other.cost;
-			pumpId = other.pumpId;
-			txnStatus = other.txnStatus;
-		}
-		return *this;
-	}
-#endif
 };
 
 /***********************************************
