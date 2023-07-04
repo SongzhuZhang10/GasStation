@@ -1,13 +1,13 @@
 ---
 Title:  The Gas Station
 Date:   2023-07-04
-Authors: [Songzhu Zhang]
+Authors: Songzhu Zhang
 
 ---
 
 # Design Specifications for The Gas Station Simulation
 
-The ‘Chevron’ chain of gas stations is planning to build a new gas station on the University campus. Your task is to provide a real-time simulation of this, the specification of which is given below. The static architecture for the software is given in a separate document [The Gas Station Architecture.pdf](The Gas Station Architecture.pdf). You should read this document in conjunction with the architecture document; otherwise, it won’t make much sense.
+The ‘Chevron’ chain of gas stations is planning to build a new gas station on the University campus. Your task is to provide a real-time simulation of this, the specification of which is given below. The static architecture for the software is given in a separate document [The Gas Station Architecture](The_Gas_Station_Architecture.pdf). You should read this document in conjunction with the architecture document; otherwise, it won’t make much sense.
 
 1.  There are 4 pumps on the forecourt enabling 4 vehicles to be filled up simultaneously.
 2.  A display present inside the gas station office shows the real-time status of all pumps.
