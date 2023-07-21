@@ -5,7 +5,7 @@ Authors: Songzhu Zhang
 
 ---
 
-# The Gas Station Simulation
+# The Gas Station Simulation Model
 The Chevron chain of gas stations plans to build a new gas station on the University campus. Your task is to provide a real-time simulation of this, the specification of which is given below. The static architecture for the software is given in a separate document [The Gas Station Architecture](The_Gas_Station_Architecture.pdf). You should read this document in conjunction with the architecture document; otherwise, it won’t make much sense.
 
 ## Design Specifications
