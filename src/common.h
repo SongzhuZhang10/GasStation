@@ -36,7 +36,7 @@
 #include <ctime>	//for converting time to a string.
 
 const int NUM_TANKS = 4;
-const int NUM_PUMPS = 4;
+const int NUM_PUMPS = 6;
 
 const int MAX_NUM_CUSTOMERS = 25;
 
@@ -46,7 +46,7 @@ const float LOW_FUEL_VOLUME = 200.0f;
 
 constexpr int TANK_UI_POSITION = 5;
 constexpr int PUMP_STATUS_POSITION = TANK_UI_POSITION + 6;
-constexpr int TXN_LIST_POSITION = PUMP_STATUS_POSITION + 50;
+constexpr int TXN_LIST_POSITION = PUMP_STATUS_POSITION + NUM_PUMPS * 12 + 2;
 
 const int CUSTOMER_STATUS_POSITION = 12;
 
@@ -248,8 +248,20 @@ private:
 
 	std::vector<std::shared_ptr<CSemaphore>> producers, consumers;
 
+	std::vector<int> tankThreadIds;
+	std::vector<int> pumpThreadIds;
+
 public:
 	SharedResources() {
+
+		for (int i = 0; i < NUM_TANKS; ++i) {
+			tankThreadIds.push_back(i);
+		}
+
+		for (int i = 0; i < NUM_PUMPS; ++i) {
+			pumpThreadIds.push_back(i);
+		}
+
 		pumpWindowMutex = std::make_shared<CMutex>("PumpScreenMutex");
 		computerWindowMutex = std::make_shared<CMutex>("ComputerWindowMutex");
 		rndv = std::make_shared<CRendezvous>("PumpRendezvous",
@@ -318,6 +330,10 @@ public:
 	std::shared_ptr<CTypedPipe<CustomerRecord>> getPumpPipe(int n) const { return pumpPipes[n]; }
 
 	std::shared_ptr<CEvent> getTxnApprovedEvent(int n) const { return txnApprovedEvents[n]; }
+
+	std::vector<int>& getTankThreadIds() { return tankThreadIds; }
+	std::vector<int>& getPumpThreadIds() { return pumpThreadIds; }
+
 };
 
 extern SharedResources sharedResources;

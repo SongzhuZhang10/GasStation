@@ -24,7 +24,7 @@ vector<float> tankReadings(NUM_TANKS, 0.0f);
 shared_ptr<CTypedPipe<Cmd>> attendentPipe;
 
 vector<unique_ptr<CThread>> readPumpThreads;
-vector<int> threadIds = { 0, 1, 2, 3 };
+
 vector<unique_ptr<PumpController>> pumpController;
 vector<unique_ptr<CThread>> readTankThreads;
 
@@ -69,16 +69,27 @@ TxnListPrinter::printNew()
 void
 setupComputer()
 {
-	for (int i = 0; i < NUM_TANKS; i++) {
-		tankDpMutex = sharedResources.getTankDpDataMutexVec();
-		tankDpData = sharedResources.getTankDpDataVec();
+	vector<int>& tankThreadIds = sharedResources.getTankThreadIds();
+	vector<int>& pumpThreadIds = sharedResources.getPumpThreadIds();
+
+	tankDpMutex = sharedResources.getTankDpDataMutexVec();
+	tankDpData = sharedResources.getTankDpDataVec();
+
+	for (int i = 0; i < NUM_TANKS; ++i) {
 		// Make read tank threads active at creation time can avoid UI being garbled.
-		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &threadIds[i]));
+		// The vector `tankThreadIds` must be a global variable so that it does not get
+		// destroyed when it goes out of scopt.
+		readTankThreads.emplace_back(make_unique<CThread>(readTank, ACTIVE, &tankThreadIds[i]));
 	}
 
-	for (int i = 0; i < NUM_PUMPS; i++) {
+	
+	for (int i = 0; i < NUM_PUMPS; ++i) {
+		pumpThreadIds.push_back(i);
+	}
+
+	for (int i = 0; i < NUM_PUMPS; ++i) {
 		pumpController.emplace_back(make_unique<PumpController>(i));
-		readPumpThreads.emplace_back(make_unique<CThread>(runPump, ACTIVE, &threadIds[i]));
+		readPumpThreads.emplace_back(make_unique<CThread>(runPump, ACTIVE, &pumpThreadIds[i]));
 	}
 
 	attendentPipe = sharedResources.getAttendentPipe();
@@ -170,7 +181,7 @@ UINT __stdcall
 runPump(void* args)
 {
 	int id = *(int*)(args);
-	assert(id >= 0 && id <= 3);
+	assert(id >= 0 && id <= NUM_PUMPS - 1);
 
 	pumpController[id]->printPumpStatus(pumpController[id]->getData());
 
@@ -190,20 +201,22 @@ UINT __stdcall
 printTxnHistory(void* args)
 {
 	Cmd cmd = Cmd::Invalid;
-
-	windowMutex->Wait();
-	MOVE_CURSOR(0, TXN_LIST_POSITION - 3);
-	cout << "--------------------------------------------------------------------------------" << endl;
-	cout << "                           Transaction History                                  " << endl;
-	cout << "--------------------------------------------------------------------------------" << endl;
-	windowMutex->Signal();
+	bool executedOnce = false;
 
 	while (true) {
 		attendentPipe->Read(&cmd);
 
 		if (cmd == Cmd::PrintTxn) {
+			if (!executedOnce) {
+				windowMutex->Wait();
+				MOVE_CURSOR(0, TXN_LIST_POSITION - 3);
+				cout << "--------------------------------------------------------------------------------" << endl;
+				cout << "                           Transaction History                                  " << endl;
+				cout << "--------------------------------------------------------------------------------" << endl;
+				windowMutex->Signal();
+				executedOnce = true;
+			}
 			txnPrinter.printNew();
-			
 		}
 	}
 	return 0;
@@ -272,10 +285,10 @@ readTank(void* args)
 
 			// Draw the bar
 			cout << "Tank " << tank_id << " (" << fuelGradeToString(static_cast<FuelGrade>(tank_data.fuelGrade)) << "): [";
-			for (int i = 0; i < bar_length; i++) {
+			for (int i = 0; i < bar_length; ++i) {
 				cout << barChar;
 			}
-			for (int i = bar_length; i < maxBarLength; i++) {
+			for (int i = bar_length; i < maxBarLength; ++i) {
 				cout << " ";
 			}
 

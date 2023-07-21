@@ -90,11 +90,14 @@ UINT __stdcall printCustomers(void* args)
 	std::cout << std::left << std::setw(commandWidth) << "- op#";
 	std::cout << std::setw(descriptionWidth) << "Authorize the transaction at pump # by opening that pump" << std::endl;
 
-	std::cout << std::left << std::setw(commandWidth) << "- cp# #:";
-	std::cout << std::setw(descriptionWidth) << "Change the unit price of fuel grade # to the price specified by #" << std::endl;
+	std::cout << std::left << std::setw(commandWidth) << "- cpX Y:";
+	std::cout << std::setw(descriptionWidth) << "Change the unit price of fuel grade X to the price Y" << std::endl;
 
 	std::cout << std::left << std::setw(commandWidth) << "- pt:";
 	std::cout << std::setw(descriptionWidth) << "Print transaction history" << std::endl;
+
+	std::cout << std::left << std::setw(commandWidth) << "- rf#:";
+	std::cout << std::setw(descriptionWidth) << "Refill tank # to full capacity" << std::endl;
 
 
 	std::cout << "\n";
@@ -144,11 +147,16 @@ printCustomerRecord(int idx, vector<unique_ptr<Customer>>& customers)
 		std::cout << "Received Volume (L):       " << records[idx].receivedVolume << "                        " << "\n";
 		std::cout << "Total Cost ($):            " << records[idx].cost << "                        " << "\n";
 		if (customers[idx]->getStatusString() == "Wait for auth") {
-			TEXT_COLOUR(11);
+			TEXT_COLOUR(CYAN);
 		}
 		std::cout << "Status:                    " << customers[idx]->getStatusString() << "                        " << "\n";
 		TEXT_COLOUR();
-		std::cout << "Pump ID:                   " << records[idx].pumpId << "                        " << "\n";
+		if (records[idx].pumpId == -1) {
+			std::cout << "Pump ID:                   Pending" << "                        " << "\n";
+		}
+		else {
+			std::cout << "Pump ID:                   " << records[idx].pumpId << "                        " << "\n";
+		}
 		if (records[idx].nowTime.tm_year == 0) {
 			std::cout << "Time:                                              " << "\n";
 		}

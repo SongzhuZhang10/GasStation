@@ -294,8 +294,7 @@ CommandProcessor::run()
                 continue;
             }
 
-            // For generating customers command, the number can be greater than 4.
-            if (command != "GC" && (number < 0 || number > 3)) {
+            if (command != "GC" && (number < 0 || number > NUM_PUMPS - 1)) {
 #if DISPLAY_OUTPUT
                 std::cout << "Number must be the range of 0 to " << NUM_PUMPS - 1 << ".\n";
 #endif
@@ -340,11 +339,10 @@ CommandProcessor::run()
                 continue;
             }
 
-            if (grade < 0 || grade > 3) {
+            if (grade < 0 || grade > NUM_TANKS - 1) {
 #if DISPLAY_OUTPUT
-                std::cout << "Fuel grade must be an integer in the range of 0 to 3.\n";
+                std::cout << "Fuel grade must be an integer in the range of 0 to " << NUM_TANKS - 1 << std::endl;
 #endif
-                //assert(grade >= 0 && grade <= 3 && price >= 0);
                 commandCompleted = true;
                 continue;
             }
