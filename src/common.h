@@ -38,7 +38,7 @@
 const int NUM_TANKS = 4;
 const int NUM_PUMPS = 6;
 
-const int MAX_NUM_CUSTOMERS = 25;
+const int MAX_NUM_CUSTOMERS = 100;
 
 const float TANK_CAPACITY = 500.0f;
 const float FLOW_RATE = 5.0f;
@@ -72,6 +72,7 @@ const int BLACK = 0;
 const int GREEN = 10;
 const int CYAN = 11;
 const int RED = 12;
+const int YELLOW = 14;
 const int WHITE = 15;
 
 std::tm getTimestamp();

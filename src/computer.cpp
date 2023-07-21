@@ -263,7 +263,7 @@ readTank(void* args)
 			tankReadingsPercent[tank_id] = tankReadings[tank_id] / TANK_CAPACITY * 100;
 			// Calculate the length of the bar based on the fuel level
 			int bar_length = (int)(tankReadings[tank_id] / TANK_CAPACITY * maxBarLength);
-
+		
 			if (tankReadings[tank_id] < LOW_FUEL_VOLUME) {
 				flash_red = true;
 			}
@@ -273,6 +273,12 @@ readTank(void* args)
 
 			windowMutex->Wait();
 			MOVE_CURSOR(0, TANK_UI_POSITION + tank_id); // Move the cursor to the appropriate location on the screen
+			if (tankReadingsPercent[tank_id] > 75) {
+				TEXT_COLOUR(GREEN);
+			}
+			if (tankReadingsPercent[tank_id] <= 75 && tankReadings[tank_id] >= LOW_FUEL_VOLUME) {
+				TEXT_COLOUR(YELLOW);
+			}
 			if (flash_red) {
 				if (toggle) {
 					TEXT_COLOUR(RED);
