@@ -85,7 +85,7 @@ UINT __stdcall printCustomers(void* args)
 
 	// Set the left alignment for the columns
 	std::cout << std::left << std::setw(commandWidth) << "- gc#:";
-	std::cout << std::setw(descriptionWidth) << "Generate # number of customers" << std::endl;
+	std::cout << std::setw(descriptionWidth) << "Generate # number of customers (must less than "<< MAX_NUM_CUSTOMERS << ")" << std::endl;
 
 	std::cout << std::left << std::setw(commandWidth) << "- op#";
 	std::cout << std::setw(descriptionWidth) << "Authorize the transaction at pump # by opening that pump" << std::endl;
